@@ -106,7 +106,7 @@ POST   /api/connections/{id}/test
 POST   /api/connections/{id}/rotate-key
 GET    /api/connections/{id}/models      POST   /api/connections/{id}/models
 
-GET    /api/catalog                      every model Higgsfield offers (58)
+GET    /api/catalog                      every model Higgsfield offers (59)
 POST   /api/catalog/seed                 register the configured ones
 GET    /api/cron/tick                    the queue driver (guarded by CRON_SECRET)
 
@@ -158,7 +158,7 @@ points at a route that exists, and that the deny rules for `/app/*`, `/data/*`,
 
 ## The model catalogue
 
-`app/catalog.py` lists **every model Higgsfield offers** — 24 image, 24 video, 5 3D and
+`app/catalog.py` lists **every model Higgsfield offers** — 24 image, 25 video, 5 3D and
 5 audio — with the job-set id their CLI actually accepts (`nano_banana_2`,
 `gpt_image_2_5`, `seedance_2_5`), the parameters each documents, and the capabilities
 derived from those parameters.

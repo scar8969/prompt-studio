@@ -3220,5 +3220,69 @@
    }
   },
   "description": ""
+ },
+ {
+  "id": "seedance_2_5",
+  "name": "Seedance 2.5",
+  "category": "video",
+  "description": "SOTA default for general video generation (documented in the CLI README; absent from MODELS.md).",
+  "source": "README.md",
+  "flags": {
+   "prompt": {
+    "required": true,
+    "default": "",
+    "values": []
+   },
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "16:9",
+     "9:16",
+     "1:1",
+     "4:3",
+     "3:4",
+     "21:9"
+    ]
+   },
+   "duration": {
+    "required": false,
+    "default": "5",
+    "values": [
+     "5",
+     "10"
+    ]
+   },
+   "resolution": {
+    "required": false,
+    "default": "1080p",
+    "values": [
+     "480p",
+     "720p",
+     "1080p"
+    ]
+   },
+   "mode": {
+    "required": false,
+    "default": "t2v",
+    "values": [
+     "t2v",
+     "i2v"
+    ]
+   },
+   "bitrate_mode": {
+    "required": false,
+    "default": "high",
+    "values": [
+     "standard",
+     "high"
+    ]
+   },
+   "start_image": {
+    "required": false,
+    "default": "",
+    "values": []
+   }
+  }
  }
 ]

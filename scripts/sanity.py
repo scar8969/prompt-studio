@@ -93,11 +93,11 @@ def main() -> int:
     code, catalog, _ = call(base, "GET", "/api/catalog")
     check("catalog responds 200", code == 200, f"got {code}")
     models = (catalog or {}).get("data") or []
-    check("catalog lists 58 models", len(models) == 58, f"got {len(models)}")
+    check("catalog lists 59 models", len(models) == 59, f"got {len(models)}")
     summary = (catalog or {}).get("summary") or {}
     by_modality = summary.get("by_modality") or {}
     check("24 image models", by_modality.get("image") == 24, str(by_modality))
-    check("24 video models", by_modality.get("video") == 24, str(by_modality))
+    check("25 video models", by_modality.get("video") == 25, str(by_modality))
     check("5 3D models", by_modality.get("3d") == 5, str(by_modality))
     check("5 audio models", by_modality.get("audio") == 5, str(by_modality))
     with_ids = [m for m in models if m.get("job_set_type")]

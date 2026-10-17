@@ -20,10 +20,22 @@ from app import catalog  # noqa: E402
 
 
 def test_the_catalogue_covers_every_published_model():
-    """58 models across four categories, as upstream lists them."""
+    """59 models across four categories.
+
+    58 come from MODELS.md; `seedance_2_5` is documented in the CLI README as the SOTA
+    video default but missing from MODELS.md, so it is recorded explicitly.
+    """
     counts = catalog.summary()["by_modality"]
-    assert counts == {"image": 24, "video": 24, "3d": 5, "audio": 5}, (
+    assert counts == {"image": 24, "video": 25, "3d": 5, "audio": 5}, (
         f"catalogue counts changed: {counts}")
+
+
+def test_the_readme_default_video_model_is_present():
+    """Higgsfield's README calls seedance_2_5 the SOTA default; MODELS.md omits it."""
+    model = catalog.get("seedance_2_5")
+    assert model is not None, "seedance_2_5 is missing from the catalogue"
+    assert model["modality"] == "video"
+    assert "video.generate" in model["capabilities"]
 
 
 def test_every_model_has_a_real_job_set_type():

@@ -17,7 +17,7 @@ CLI actually takes — `nano_banana_2`, `gpt_image_2_5`, `seedance_2_5` — not 
 guessed model name. A model with no credential configured is `configured: false`
 and never appears in the studios; it is never given a placeholder id.
 
-Counts: 24 image, 24 video, 5 3D, 5 audio — 58 total.
+Counts: 24 image, 25 video, 5 3D, 5 audio — 59 total.
 """
 
 from __future__ import annotations
@@ -610,6 +610,16 @@ CATALOG: List[Dict[str, Any]] = [
         "modality": "audio",
         "capabilities": ["audio.generate", "audio.speech"],
         "parameters": {"variant": ["elevenlabs", "minimax", "seed_speech", "vibe_voice", "cozy_voice"], "voice_type": ["preset", "element"]},
+    },
+    {
+        "slug": "seedance-2-5",
+        "label": "Seedance 2.5",
+        "display": "Seedance 2.5",
+        "job_set_type": "seedance_2_5",
+        "env": "SEEDANCE_2_5",
+        "modality": "video",
+        "capabilities": ["video.generate", "video.async", "video.image_to_video"],
+        "parameters": {"aspect_ratio": ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"], "bitrate_mode": ["standard", "high"], "duration": ["5", "10"], "mode": ["t2v", "i2v"], "resolution": ["480p", "720p", "1080p"]},
     },
 ]
 

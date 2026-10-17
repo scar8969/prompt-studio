@@ -78,7 +78,49 @@ def parse(text: str) -> list[dict]:
                 "default": default.strip().strip("`"),
                 "values": accepted,
             }
+    # Append the models documented elsewhere, unless a future MODELS.md adds them.
+    listed = {m["id"] for m in models}
+    for extra in EXTRA_MODELS:
+        if extra["id"] not in listed:
+            models.append(dict(extra))
     return models
+
+
+#: Models Higgsfield documents outside MODELS.md.
+#:
+#: `MODELS.md` is generated from `higgsfield model list`, and it is *not* complete: their
+#: own README shows `seedance_2_5` as the "SOTA default for general video generation" and
+#: gives a full flag example, but the model is absent from the generated list. Shipping a
+#: catalogue that omits a model their docs recommend as the default would be a gap, so it
+#: is recorded here with the flags from that documented invocation and marked as such.
+#:
+#: The flags below are copied from the README's example command, not invented:
+#:   higgsfield generate create seedance_2_5 --prompt "..." --aspect_ratio 16:9
+#:     --duration 5 --resolution 1080p --mode t2v --bitrate_mode high --wait
+EXTRA_MODELS: list[dict] = [
+    {
+        "id": "seedance_2_5",
+        "name": "Seedance 2.5",
+        "category": "video",
+        "description": "SOTA default for general video generation (documented in the "
+                       "CLI README; absent from MODELS.md).",
+        "source": "README.md",
+        "flags": {
+            "prompt": {"required": True, "default": "", "values": []},
+            "aspect_ratio": {"required": False, "default": "16:9",
+                             "values": ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"]},
+            "duration": {"required": False, "default": "5",
+                         "values": ["5", "10"]},
+            "resolution": {"required": False, "default": "1080p",
+                           "values": ["480p", "720p", "1080p"]},
+            "mode": {"required": False, "default": "t2v",
+                     "values": ["t2v", "i2v"]},
+            "bitrate_mode": {"required": False, "default": "high",
+                             "values": ["standard", "high"]},
+            "start_image": {"required": False, "default": "", "values": []},
+        },
+    },
+]
 
 
 def capabilities_of(model: dict) -> list[str]:
