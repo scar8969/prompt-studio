@@ -36,6 +36,8 @@ STATIC_TYPES = {
 PUBLIC_FILES = (
     "/",
     "/studio.html",
+    "/studio.css",
+    "/studio.js",
 )
 
 

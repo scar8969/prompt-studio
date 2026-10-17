@@ -4,802 +4,378 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Prompt Studio</title>
-<style>
-  :root {
-    --bg: #f7f7f8; --panel: #ffffff; --ink: #16181b; --muted: #6b6f76;
-    --line: #e3e4e8; --accent: #16181b; --ok: #0f7a4a; --warn: #8a5a00;
-    --bad: #b42318; --chip: #eef0f3;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--ink);
-    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  }
-  code, .mono, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  header {
-    display: flex; align-items: baseline; gap: 16px;
-    padding: 18px 24px; border-bottom: 1px solid var(--line); background: var(--panel);
-    position: sticky; top: 0; z-index: 10;
-  }
-  header h1 { font-size: 17px; margin: 0; letter-spacing: -0.01em; }
-  header .sub { color: var(--muted); font-size: 12px; }
-  header .right { margin-left: auto; display: flex; gap: 8px; align-items: center; font-size: 12px; }
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); display: inline-block; }
-  .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); }
-  nav { display: flex; gap: 4px; padding: 10px 24px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
-  nav button {
-    border: 1px solid transparent; background: none; padding: 6px 12px; border-radius: 999px;
-    font-size: 13px; color: var(--muted); cursor: pointer; font-weight: 500;
-  }
-  nav button[aria-selected="true"] { background: var(--accent); color: #fff; }
-  main { padding: 22px 24px 60px; max-width: 1180px; margin: 0 auto; }
-  section[hidden] { display: none; }
-  .grid { display: grid; gap: 16px; }
-  .cols-2 { grid-template-columns: 380px 1fr; }
-  @media (max-width: 900px) { .cols-2 { grid-template-columns: 1fr; } }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-  .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
-  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; font-weight: 500; }
-  input, select, textarea {
-    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
-    font: inherit; background: #fff; color: var(--ink);
-  }
-  textarea { resize: vertical; min-height: 90px; }
-  input:focus, select:focus, textarea:focus { outline: 2px solid #16181b22; border-color: #16181b55; }
-  button.primary {
-    background: var(--accent); color: #fff; border: none; border-radius: 8px;
-    padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer;
-  }
-  button.primary:disabled { opacity: 0.45; cursor: not-allowed; }
-  button.ghost {
-    background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px;
-    font: inherit; cursor: pointer;
-  }
-  button.ghost:hover { border-color: #16181b55; }
-  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .chip {
-    display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
-    letter-spacing: 0.02em; padding: 2px 8px; border-radius: 999px; background: var(--chip); color: #3f3f46;
-  }
-  .chip.ok { background: #e6f4ec; color: var(--ok); }
-  .chip.bad { background: #fdecec; color: var(--bad); }
-  .chip.warn { background: #fff3d6; color: var(--warn); }
-  .muted { color: var(--muted); font-size: 12px; }
-  .item {
-    display: flex; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line);
-    border-radius: 10px; background: #fff; margin-bottom: 8px;
-  }
-  .item .grow { flex: 1; min-width: 0; }
-  .item .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .empty { color: var(--muted); font-size: 13px; padding: 14px; text-align: center; border: 1px dashed var(--line); border-radius: 10px; }
-  .banner { border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px; border: 1px solid; }
-  .banner.bad { background: #fdecec; color: var(--bad); border-color: #f5c6c2; }
-  .banner.warn { background: #fff3d6; color: var(--warn); border-color: #f0d9a0; }
-  .banner.ok { background: #e6f4ec; color: var(--ok); border-color: #b8e0cb; }
-  .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
-  .thumb { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }
-  .thumb img, .thumb video { width: 100%; display: block; aspect-ratio: 1; object-fit: cover; background: #eee; }
-  .thumb .cap { padding: 6px 8px; font-size: 11px; color: var(--muted); }
-  .steps { list-style: none; padding: 0; margin: 0; font-size: 12.5px; }
-  .steps li { display: flex; gap: 8px; padding: 5px 0; border-bottom: 1px dashed var(--line); }
-  .steps li:last-child { border: 0; }
-  .steps .t { color: var(--muted); min-width: 92px; text-align: right; }
-  .demo-note { font-size: 11px; color: var(--warn); background: #fff3d6; border: 1px solid #f0d9a0;
-               border-radius: 8px; padding: 6px 10px; margin-top: 8px; }
-</style>
+<link rel="stylesheet" href="/studio.css">
 </head>
 <body>
 
-<header>
-  <h1>Prompt Studio</h1>
-  <span class="sub">bring your own model</span>
-  <div class="right">
-    <span class="dot" id="healthDot"></span>
-    <span id="healthText" class="muted">checking…</span>
-  </div>
-</header>
+<div class="app">
 
-<nav id="tabs">
-  <button data-tab="connections" aria-selected="true">Connections</button>
-  <button data-tab="image">Image studio</button>
-  <button data-tab="video">Video studio</button>
-  <button data-tab="library">Library</button>
-  <button data-tab="usage">Usage</button>
-</nav>
-
-<main>
-
-  <section id="panel-connections">
-    <div class="grid cols-2">
-      <div class="card">
-        <h2>Add a connection</h2>
-        <label for="cName">Name</label>
-        <input id="cName" placeholder="My gateway">
-        <label for="cBase">API base URL</label>
-        <input id="cBase" placeholder="https://your-gateway/v1">
-        <label for="cKey">API key</label>
-        <input id="cKey" type="password" autocomplete="off" placeholder="sk-…">
-        <label for="cKind">Kind</label>
-        <select id="cKind">
-          <option value="openai-compatible">OpenAI-compatible</option>
-          <option value="mock">Offline demo (no network)</option>
-        </select>
-        <div class="muted" style="margin-top:6px">
-          The key is encrypted before it is stored and is never sent back to this page.
-        </div>
-        <div class="row" style="margin-top:14px">
-          <button class="primary" id="cAdd">Add connection</button>
-        </div>
-        <div id="cMsg" style="margin-top:10px"></div>
-      </div>
-
-      <div class="card">
-        <h2>Your connections</h2>
-        <div id="connList"></div>
-      </div>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">P</span>
+      Prompt Studio
+      <small>bring your own model</small>
     </div>
-
-    <div class="card" id="modelBox" hidden style="margin-top:16px">
-      <h2>Models on <span id="modelConnName">—</span></h2>
-      <div class="row" style="margin-bottom:10px">
-        <button class="ghost" id="fetchModels">Ask the provider what it has</button>
-        <span class="muted" id="fetchMsg"></span>
-      </div>
-      <div id="providerModels"></div>
-      <h2 style="margin-top:20px">Registered models</h2>
-      <div id="registeredModels"></div>
+    <div class="topbar-right">
+      <span class="health">
+        <span class="dot" id="healthDot"></span>
+        <span id="healthText">connecting…</span>
+      </span>
+      <button class="btn sm" id="assistantBtn" title="Prompt assistant">
+        <span aria-hidden="true">✦</span> Assistant
+      </button>
     </div>
-  </section>
+  </header>
 
-  <section id="panel-image" hidden>
-    <div class="grid cols-2">
-      <div class="card">
-        <h2>Prompt</h2>
-        <label for="iModel">Model</label>
-        <select id="iModel"></select>
-        <div id="iCaps" class="row" style="margin-top:8px"></div>
-        <label for="iPrompt">Prompt</label>
-        <textarea id="iPrompt" placeholder="a lighthouse at dawn, wide shot, warm light"></textarea>
-        <div id="iParams"></div>
-        <div class="row" style="margin-top:14px">
-          <button class="primary" id="iGenerate">Generate</button>
-          <span class="muted" id="iMsg"></span>
+  <aside class="sidebar" aria-label="Sections">
+    <div class="group">Generate</div>
+    <button class="navitem" data-view="image" aria-current="page">
+      <span class="ico" aria-hidden="true">▣</span><span class="lbl">Image studio</span>
+    </button>
+    <button class="navitem" data-view="video">
+      <span class="ico" aria-hidden="true">▶</span><span class="lbl">Video studio</span>
+    </button>
+
+    <div class="group">Work</div>
+    <button class="navitem" data-view="jobs">
+      <span class="ico" aria-hidden="true">◷</span><span class="lbl">Jobs</span>
+      <span class="count" id="jobsCount" hidden>0</span>
+    </button>
+    <button class="navitem" data-view="projects">
+      <span class="ico" aria-hidden="true">▤</span><span class="lbl">Projects</span>
+    </button>
+    <button class="navitem" data-view="library">
+      <span class="ico" aria-hidden="true">▦</span><span class="lbl">Library</span>
+    </button>
+
+    <div class="group">Library</div>
+    <button class="navitem" data-view="prompts">
+      <span class="ico" aria-hidden="true">✎</span><span class="lbl">Saved prompts</span>
+    </button>
+    <button class="navitem" data-view="presets">
+      <span class="ico" aria-hidden="true">◈</span><span class="lbl">Presets</span>
+    </button>
+    <button class="navitem" data-view="characters">
+      <span class="ico" aria-hidden="true">☺</span><span class="lbl">Characters</span>
+    </button>
+
+    <div class="group">Setup</div>
+    <button class="navitem" data-view="connections">
+      <span class="ico" aria-hidden="true">⚿</span><span class="lbl">Connections</span>
+    </button>
+    <button class="navitem" data-view="usage">
+      <span class="ico" aria-hidden="true">◔</span><span class="lbl">Usage</span>
+    </button>
+
+    <div class="sidebar-foot">
+      <div class="tiny muted" id="versionLine">—</div>
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+
+    <!-- =============================================================== image -->
+    <section class="view" id="view-image">
+      <div class="view-head">
+        <div>
+          <h1>Image studio</h1>
+          <p>Pick a model from your own connection. Only the controls that model documents are shown — nothing here is guessed.</p>
         </div>
-      </div>
-      <div class="card">
-        <h2>Result</h2>
-        <div id="iJob"></div>
-      </div>
-    </div>
-  </section>
-
-  <section id="panel-video" hidden>
-    <div class="grid cols-2">
-      <div class="card">
-        <h2>Shot</h2>
-        <label for="vModel">Model</label>
-        <select id="vModel"></select>
-        <div id="vCaps" class="row" style="margin-top:8px"></div>
-        <label for="vPrompt">Prompt</label>
-        <textarea id="vPrompt" placeholder="a slow push in on a lighthouse as waves break"></textarea>
-        <div id="vParams"></div>
-        <div class="row" style="margin-top:14px">
-          <button class="primary" id="vGenerate">Generate</button>
-          <span class="muted" id="vMsg"></span>
+        <div class="actions">
+          <button class="btn sm" id="imgPresetBtn">Load preset</button>
+          <button class="btn sm" id="imgPromptBtn">Save prompt</button>
         </div>
       </div>
-      <div class="card">
-        <h2>Result</h2>
-        <div id="vJob"></div>
-      </div>
-    </div>
-  </section>
 
-  <section id="panel-library" hidden>
-    <div class="card">
-      <h2>Assets</h2>
-      <div class="row" style="margin-bottom:12px">
-        <button class="ghost" id="libRefresh">Refresh</button>
-        <button class="ghost" id="libUpload">Upload an image…</button>
-        <input id="libFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
-        <span class="muted" id="libMsg"></span>
-      </div>
-      <div class="thumbs" id="libGrid"></div>
-    </div>
-  </section>
+      <div class="split">
+        <div class="card">
+          <header><h2>Prompt</h2><div class="right"><span class="tiny muted" id="imgModelCount"></span></div></header>
+          <div class="body">
+            <label class="field">
+              <span class="lbl">Model</span>
+              <select id="imgModel"></select>
+            </label>
+            <div class="chips" id="imgCaps" style="margin-bottom:12px"></div>
+            <div id="imgDemoNote"></div>
 
-  <section id="panel-usage" hidden>
-    <div class="card">
-      <h2>Usage</h2>
-      <div class="row" style="margin-bottom:12px">
-        <button class="ghost" id="usageRefresh">Refresh</button>
-        <span class="muted" id="usageMsg"></span>
+            <label class="field">
+              <span class="lbl">Prompt</span>
+              <textarea id="imgPrompt" placeholder="a lighthouse at dawn, wide shot, warm light, wet stone"></textarea>
+              <span class="hint"><span id="imgCharCount">0</span> characters</span>
+            </label>
+
+            <div id="imgParams"></div>
+
+            <div class="inline mt4">
+              <button class="btn primary" id="imgGenerate">Generate</button>
+              <button class="btn" id="imgRandom" title="Fill a starting prompt">Surprise me</button>
+              <span class="tiny muted" id="imgStatus"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <header><h2>Result</h2><div class="right" id="imgJobActions"></div></header>
+          <div class="body" id="imgResult">
+            <div class="empty"><strong>Nothing generated yet</strong>Your outputs will appear here with their full job history.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =============================================================== video -->
+    <section class="view" id="view-video" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Video studio</h1>
+          <p>Video jobs run in the background and are polled from the provider. Cancelling is honoured while it waits.</p>
+        </div>
+        <div class="actions">
+          <button class="btn sm" id="vidPresetBtn">Load preset</button>
+          <button class="btn sm" id="vidPromptBtn">Save prompt</button>
+        </div>
+      </div>
+
+      <div class="split">
+        <div class="card">
+          <header><h2>Shot</h2></header>
+          <div class="body">
+            <label class="field">
+              <span class="lbl">Model</span>
+              <select id="vidModel"></select>
+            </label>
+            <div class="chips" id="vidCaps" style="margin-bottom:12px"></div>
+            <div id="vidDemoNote"></div>
+
+            <label class="field">
+              <span class="lbl">Prompt</span>
+              <textarea id="vidPrompt" placeholder="a slow push in on a lighthouse as waves break against the rock"></textarea>
+            </label>
+
+            <div id="vidParams"></div>
+
+            <div class="inline mt4">
+              <button class="btn primary" id="vidGenerate">Generate</button>
+              <span class="tiny muted" id="vidStatus"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <header><h2>Result</h2><div class="right" id="vidJobActions"></div></header>
+          <div class="body" id="vidResult">
+            <div class="empty"><strong>No clip yet</strong>A video job appears here with its polling history.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =============================================================== jobs -->
+    <section class="view" id="view-jobs" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Jobs</h1>
+          <p>Every generation, its real status and the transitions it went through.</p>
+        </div>
+        <div class="actions">
+          <select id="jobsFilter" style="width:auto">
+            <option value="">All statuses</option>
+            <option value="queued">Queued</option>
+            <option value="running">Running</option>
+            <option value="succeeded">Succeeded</option>
+            <option value="failed">Failed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <button class="btn sm" id="jobsRefresh">Refresh</button>
+        </div>
+      </div>
+      <div class="card flush"><div class="rows" id="jobsList"></div></div>
+      <div class="inline mt3"><span class="tiny muted" id="jobsMeta"></span></div>
+    </section>
+
+    <!-- =============================================================== projects -->
+    <section class="view" id="view-projects" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Projects</h1>
+          <p>Group outputs. Deleting a project keeps the work — it only removes the grouping.</p>
+        </div>
+        <div class="actions"><button class="btn primary sm" id="projectNew">New project</button></div>
+      </div>
+      <div class="card flush"><div class="rows" id="projectsList"></div></div>
+    </section>
+
+    <!-- =============================================================== library -->
+    <section class="view" id="view-library" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Library</h1>
+          <p>Everything stored locally: generated outputs and your own uploads. Files are validated by signature, not by name.</p>
+        </div>
+        <div class="actions">
+          <select id="libFilter" style="width:auto">
+            <option value="">All media</option>
+            <option value="image">Images</option>
+            <option value="video">Video</option>
+          </select>
+          <button class="btn sm" id="libUploadBtn">Upload…</button>
+          <input type="file" id="libFile" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" hidden>
+        </div>
+      </div>
+      <div class="media-grid" id="libGrid"></div>
+      <div class="inline mt4"><span class="tiny muted" id="libMeta"></span></div>
+    </section>
+
+    <!-- =============================================================== prompts -->
+    <section class="view" id="view-prompts" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Saved prompts</h1>
+          <p>Reusable text. Favourites are pinned to the top and offered in the studios.</p>
+        </div>
+        <div class="actions"><button class="btn primary sm" id="promptNew">New prompt</button></div>
+      </div>
+      <div class="card flush"><div class="rows" id="promptsList"></div></div>
+    </section>
+
+    <!-- =============================================================== presets -->
+    <section class="view" id="view-presets" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Presets</h1>
+          <p>A saved set of parameters for a modality. Loading one fills the studio's controls, not the prompt.</p>
+        </div>
+        <div class="actions"><button class="btn primary sm" id="presetNew">New preset</button></div>
+      </div>
+      <div class="card flush"><div class="rows" id="presetsList"></div></div>
+    </section>
+
+    <!-- =============================================================== characters -->
+    <section class="view" id="view-characters" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Characters</h1>
+          <p>Reference sets for a recurring subject. A character can only reference assets you own.</p>
+        </div>
+        <div class="actions"><button class="btn primary sm" id="characterNew">New character</button></div>
+      </div>
+      <div class="card flush"><div class="rows" id="charactersList"></div></div>
+    </section>
+
+    <!-- =============================================================== connections -->
+    <section class="view" id="view-connections" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Connections</h1>
+          <p>Your own API URLs and keys. Keys are encrypted at rest and never sent back to this page.</p>
+        </div>
+      </div>
+
+      <div class="split">
+        <div class="card">
+          <header><h2>Add a connection</h2></header>
+          <div class="body">
+            <label class="field">
+              <span class="lbl">Name</span>
+              <input type="text" id="connName" placeholder="My gateway">
+            </label>
+            <label class="field">
+              <span class="lbl">Kind</span>
+              <select id="connKind">
+                <option value="openai-compatible">OpenAI-compatible</option>
+                <option value="mock">Offline demo (no network)</option>
+              </select>
+            </label>
+            <label class="field" id="connBaseField">
+              <span class="lbl">API base URL</span>
+              <input type="url" id="connBase" placeholder="https://your-gateway/v1">
+              <span class="hint">Private, loopback and metadata addresses are refused.</span>
+            </label>
+            <label class="field" id="connKeyField">
+              <span class="lbl">API key</span>
+              <input type="password" id="connKey" autocomplete="off" placeholder="sk-…">
+              <span class="hint">Encrypted before storage. Never returned to the browser.</span>
+            </label>
+            <div class="inline mt3">
+              <button class="btn primary" id="connAdd">Add connection</button>
+            </div>
+            <div id="connMsg" class="mt3"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <header><h2>Your connections</h2><div class="right"><button class="btn sm ghost" id="connRefresh">Refresh</button></div></header>
+          <div class="body" id="connList"></div>
+        </div>
+      </div>
+
+      <div class="card mt4" id="modelBox" hidden>
+        <header>
+          <h2>Models on <span id="modelConnName" style="text-transform:none;color:var(--ink)">—</span></h2>
+          <div class="right"><button class="btn sm" id="fetchModels">Ask the provider</button></div>
+        </header>
+        <div class="body">
+          <div class="tiny muted" id="fetchMsg" style="margin-bottom:10px"></div>
+          <div class="rows" id="providerModels"></div>
+          <div class="divider"></div>
+          <h2 style="font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 10px">Registered</h2>
+          <div class="rows" id="registeredModels"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =============================================================== usage -->
+    <section class="view" id="view-usage" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Usage</h1>
+          <p>Real counts. A cost is shown only where a published rate is known — otherwise it says unknown.</p>
+        </div>
+        <div class="actions">
+          <select id="usageDays" style="width:auto">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+          <button class="btn sm" id="usageRefresh">Refresh</button>
+        </div>
       </div>
       <div id="usageBody"></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- =============================================================== dialogs -->
+<dialog id="dlgAssistant">
+  <div class="dlg-head">Prompt assistant</div>
+  <div class="dlg-body">
+    <div id="assistantState"></div>
+    <div id="assistantThread" class="stack" style="max-height:260px;overflow:auto;margin-bottom:12px"></div>
+    <label class="field">
+      <span class="lbl">Ask</span>
+      <textarea id="assistantInput" style="min-height:64px" placeholder="How do I describe a slow camera move without naming a lens?"></textarea>
+    </label>
+  </div>
+  <div class="dlg-foot">
+    <button class="btn" data-close>Close</button>
+    <button class="btn primary" id="assistantSend">Send</button>
+  </div>
+</dialog>
+
+<dialog id="dlgForm">
+  <form>
+    <div class="dlg-head" id="dlgTitle">New</div>
+    <div class="dlg-body" id="dlgFields"></div>
+    <div class="dlg-foot">
+      <button class="btn" value="cancel">Cancel</button>
+      <button class="btn primary" value="save" id="dlgSave">Save</button>
     </div>
-  </section>
+  </form>
+</dialog>
 
-</main>
+<div class="toasts" id="toasts"></div>
 
-<script>
-const API = '';
-const $ = (id) => document.getElementById(id);
-
-const state = { connections: [], models: [], currentConnection: null, jobTimers: {} };
-
-async function api(method, path, body) {
-  const opts = { method, headers: {} };
-  if (body !== undefined) {
-    opts.headers['Content-Type'] = 'application/json';
-    opts.body = JSON.stringify(body);
-  }
-  const res = await fetch(API + path, opts);
-  let payload = null;
-  try { payload = await res.json(); } catch (e) { payload = null; }
-  if (!res.ok) {
-    const err = (payload && payload.error) || { message: 'HTTP ' + res.status };
-    const e = new Error(err.message || 'request failed');
-    e.code = err.code; e.hint = err.hint; e.status = res.status; e.details = err.details;
-    throw e;
-  }
-  return payload;
-}
-
-function el(tag, attrs, children) {
-  const node = document.createElement(tag);
-  for (const key of Object.keys(attrs || {})) {
-    const value = attrs[key];
-    if (key === 'text') node.textContent = value;
-    else if (key === 'class') node.className = value;
-    else if (key.startsWith('on')) node.addEventListener(key.slice(2), value);
-    else if (value !== null && value !== undefined && value !== false) node.setAttribute(key, value);
-  }
-  const list = children === undefined ? [] : [].concat(children);
-  for (const child of list) {
-    if (child === null || child === undefined || child === false) continue;
-    node.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
-  }
-  return node;
-}
-
-function banner(message, kind) {
-  return el('div', { class: 'banner ' + (kind || 'bad'), text: message });
-}
-
-function showError(target, error) {
-  const text = error.message + (error.hint ? ' — ' + error.hint : '');
-  const parts = [banner(text, 'bad')];
-  if (error.code) parts.push(el('div', { class: 'muted', text: 'code: ' + error.code }));
-  target.replaceChildren.apply(target, parts);
-}
-
-function capChips(list) {
-  const wrap = el('div', { class: 'row' });
-  (list || []).forEach(function (capability) {
-    wrap.appendChild(el('span', { class: 'chip', text: capability }));
-  });
-  return wrap;
-}
-
-$('tabs').addEventListener('click', function (event) {
-  const button = event.target.closest('button[data-tab]');
-  if (!button) return;
-  const tabs = $('tabs').querySelectorAll('button');
-  for (let i = 0; i < tabs.length; i++) tabs[i].setAttribute('aria-selected', String(tabs[i] === button));
-  ['connections', 'image', 'video', 'library', 'usage'].forEach(function (name) {
-    $('panel-' + name).hidden = name !== button.dataset.tab;
-  });
-  if (button.dataset.tab === 'library') loadLibrary();
-  if (button.dataset.tab === 'usage') loadUsage();
-});
-
-async function loadHealth() {
-  try {
-    const health = await api('GET', '/api/health');
-    $('healthDot').className = 'dot ok';
-    $('healthText').textContent = health.counts.connections + ' connections · ' +
-      health.counts.models + ' models · ' + health.counts.jobs + ' jobs';
-  } catch (error) {
-    $('healthDot').className = 'dot bad';
-    $('healthText').textContent = 'server unreachable';
-  }
-}
-
-async function loadConnections() {
-  const list = $('connList');
-  try {
-    const res = await api('GET', '/api/connections');
-    state.connections = res.data;
-    if (!res.data.length) {
-      list.replaceChildren(el('div', { class: 'empty',
-        text: 'No connections yet. Add one on the left — the offline demo needs no credentials.' }));
-      return;
-    }
-    list.replaceChildren.apply(list, res.data.map(function (conn) {
-      const statusClass = conn.status === 'ok' ? 'ok' : (conn.status === 'error' ? 'bad' : 'warn');
-      return el('div', { class: 'item' }, [
-        el('div', { class: 'grow' }, [
-          el('div', { class: 'name', text: conn.name }),
-          el('div', { class: 'muted mono', text: conn.base_url }),
-          el('div', { class: 'muted',
-            text: conn.model_count + ' model(s)' + (conn.key_hint ? ' · key ' + conn.key_hint : ' · no key') })
-        ]),
-        el('span', { class: 'chip ' + statusClass, text: conn.status }),
-        el('button', { class: 'ghost', text: 'Test', onclick: function () { testConnection(conn.id); } }),
-        el('button', { class: 'ghost', text: 'Models', onclick: function () { openModels(conn); } }),
-        el('button', { class: 'ghost', text: 'Delete', onclick: function () { deleteConnection(conn); } })
-      ]);
-    }));
-  } catch (error) {
-    showError(list, error);
-  }
-}
-
-async function addConnection() {
-  const message = $('cMsg');
-  message.replaceChildren();
-  const payload = {
-    name: $('cName').value.trim() || 'Untitled connection',
-    kind: $('cKind').value,
-    base_url: $('cBase').value.trim()
-  };
-  if ($('cKey').value) payload.api_key = $('cKey').value;
-  if (payload.kind === 'mock') payload.base_url = 'mock://offline';
-  try {
-    await api('POST', '/api/connections', payload);
-    $('cKey').value = '';
-    message.replaceChildren(banner('Connection added. Test it to confirm it works.', 'ok'));
-    await loadConnections();
-    await loadModels();
-  } catch (error) {
-    showError(message, error);
-  }
-}
-
-async function testConnection(id) {
-  const message = $('cMsg');
-  message.replaceChildren(banner('Testing…', 'warn'));
-  try {
-    const res = await api('POST', '/api/connections/' + id + '/test');
-    const data = res.data;
-    if (data.ok) {
-      message.replaceChildren(banner('Connection works — ' + data.models_found +
-        ' model(s) listed in ' + data.latency_ms + ' ms' +
-        (data.offline ? ' (offline demo)' : '') + '.', 'ok'));
-    } else {
-      const error = data.error || {};
-      message.replaceChildren(banner('Connection failed: ' + (error.message || 'unknown error') +
-        (error.hint ? ' — ' + error.hint : ''), 'bad'));
-    }
-    await loadConnections();
-  } catch (error) {
-    showError(message, error);
-  }
-}
-
-async function deleteConnection(conn) {
-  if (!confirm('Delete "' + conn.name + '"? Its stored key is removed permanently.')) return;
-  try {
-    await api('DELETE', '/api/connections/' + conn.id);
-    await loadConnections();
-    await loadModels();
-  } catch (error) {
-    showError($('cMsg'), error);
-  }
-}
-
-async function openModels(conn) {
-  state.currentConnection = conn;
-  $('modelBox').hidden = false;
-  $('modelConnName').textContent = conn.name;
-  $('providerModels').replaceChildren();
-  $('fetchMsg').textContent = '';
-  await loadRegisteredModels(conn.id);
-}
-
-async function fetchProviderModels() {
-  const conn = state.currentConnection;
-  if (!conn) return;
-  const target = $('providerModels');
-  const message = $('fetchMsg');
-  message.textContent = 'Asking the provider…';
-  target.replaceChildren();
-  try {
-    const res = await api('GET', '/api/connections/' + conn.id + '/models');
-    message.textContent = res.data.length +
-      ' model(s) offered. Nothing is stored until you register one.';
-    if (!res.data.length) {
-      target.replaceChildren(el('div', { class: 'empty', text: 'The provider listed no models.' }));
-      return;
-    }
-    target.replaceChildren.apply(target, res.data.map(function (model) {
-      return el('div', { class: 'item' }, [
-        el('div', { class: 'grow' }, [
-          el('div', { class: 'name', text: model.display_name || model.model_id }),
-          el('div', { class: 'muted mono', text: model.model_id }),
-          capChips(model.capabilities)
-        ]),
-        el('button', { class: 'ghost', text: 'Register',
-          onclick: function () { registerModel(model.model_id); } })
-      ]);
-    }));
-  } catch (error) {
-    message.textContent = '';
-    showError(target, error);
-  }
-}
-
-async function registerModel(modelId) {
-  const conn = state.currentConnection;
-  if (!conn) return;
-  try {
-    await api('POST', '/api/connections/' + conn.id + '/models', { models: [modelId] });
-    await loadRegisteredModels(conn.id);
-    await loadModels();
-    await loadConnections();
-  } catch (error) {
-    showError($('providerModels'), error);
-  }
-}
-
-async function loadRegisteredModels(connectionId) {
-  const target = $('registeredModels');
-  try {
-    const res = await api('GET', '/api/models?include_disabled=true');
-    const mine = res.data.filter(function (model) { return model.connection_id === connectionId; });
-    if (!mine.length) {
-      target.replaceChildren(el('div', { class: 'empty',
-        text: 'No models registered on this connection yet.' }));
-      return;
-    }
-    target.replaceChildren.apply(target, mine.map(function (model) {
-      return el('div', { class: 'item' }, [
-        el('div', { class: 'grow' }, [
-          el('div', { class: 'name', text: model.display_name }),
-          el('div', { class: 'muted mono', text: model.model_id + ' · ' + model.modality }),
-          capChips(model.capabilities)
-        ]),
-        el('span', { class: 'chip ' + (model.enabled ? 'ok' : 'warn'),
-                     text: model.enabled ? 'enabled' : 'disabled' }),
-        el('button', { class: 'ghost', text: model.enabled ? 'Disable' : 'Enable',
-          onclick: function () { toggleModel(model); } })
-      ]);
-    }));
-  } catch (error) {
-    showError(target, error);
-  }
-}
-
-async function toggleModel(model) {
-  try {
-    await api('PATCH', '/api/models/' + model.id, { enabled: !model.enabled });
-    if (state.currentConnection) await loadRegisteredModels(state.currentConnection.id);
-    await loadModels();
-  } catch (error) {
-    showError($('registeredModels'), error);
-  }
-}
-
-async function loadModels() {
-  try {
-    const res = await api('GET', '/api/models');
-    state.models = res.data;
-    fillStudio('image', res.data.filter(function (m) { return m.modality === 'image'; }));
-    fillStudio('video', res.data.filter(function (m) { return m.modality === 'video'; }));
-  } catch (error) {
-    state.models = [];
-  }
-}
-
-function fillStudio(kind, models) {
-  const select = $(kind === 'image' ? 'iModel' : 'vModel');
-  const previous = select.value;
-  select.replaceChildren();
-  if (!models.length) {
-    select.appendChild(el('option', { value: '',
-      text: 'No ' + kind + ' model registered — add one under Connections' }));
-    $(kind === 'image' ? 'iCaps' : 'vCaps').replaceChildren();
-    $(kind === 'image' ? 'iParams' : 'vParams').replaceChildren();
-    return;
-  }
-  models.forEach(function (model) {
-    select.appendChild(el('option', { value: model.id,
-      text: model.display_name + ' · ' + model.connection_name }));
-  });
-  if (models.some(function (m) { return m.id === previous; })) select.value = previous;
-  renderStudioFields(kind);
-}
-
-function selectedModel(kind) {
-  const id = $(kind === 'image' ? 'iModel' : 'vModel').value;
-  return state.models.find(function (model) { return model.id === id; }) || null;
-}
-
-function renderStudioFields(kind) {
-  const model = selectedModel(kind);
-  const capsTarget = $(kind === 'image' ? 'iCaps' : 'vCaps');
-  const paramsTarget = $(kind === 'image' ? 'iParams' : 'vParams');
-  capsTarget.replaceChildren();
-  paramsTarget.replaceChildren();
-  if (!model) return;
-
-  capsTarget.appendChild(capChips(model.capabilities));
-  if (model.metadata && model.metadata.offline) {
-    capsTarget.appendChild(el('span', { class: 'demo-note',
-      text: 'Offline demo: renders a placeholder stamped DEMO IMAGE, and reports no cost.' }));
-  }
-
-  // Only the parameters this model documents are offered — nothing is guessed.
-  (model.parameters || []).forEach(function (spec) {
-    if (spec.name === 'seed' || spec.name === 'negative_prompt') return;
-    if (spec.name === 'count' && spec.maximum === 1) return;
-    const id = kind + '-p-' + spec.name;
-    let input;
-    if (spec.type === 'enum' && spec.choices && spec.choices.length) {
-      input = el('select', { id: id });
-      spec.choices.forEach(function (choice) {
-        input.appendChild(el('option', { value: String(choice), text: String(choice) }));
-      });
-    } else {
-      input = el('input', { id: id, type: spec.type === 'int' ? 'number' : 'text' });
-      if (spec.minimum !== null && spec.minimum !== undefined) input.min = spec.minimum;
-      if (spec.maximum !== null && spec.maximum !== undefined) input.max = spec.maximum;
-      if (spec.default !== null && spec.default !== undefined) input.value = spec.default;
-    }
-    paramsTarget.appendChild(el('label', { for: id, text: spec.name.replace(/_/g, ' ') }));
-    paramsTarget.appendChild(input);
-  });
-}
-
-function collectParams(kind) {
-  const model = selectedModel(kind);
-  const params = {};
-  if (!model) return params;
-  (model.parameters || []).forEach(function (spec) {
-    const input = $(kind + '-p-' + spec.name);
-    if (!input || input.value === '') return;
-    if (spec.name === 'seed' || spec.name === 'negative_prompt') return;
-    params[spec.name] = spec.type === 'int' ? Number(input.value) : input.value;
-  });
-  return params;
-}
-
-$('iModel').addEventListener('change', function () { renderStudioFields('image'); });
-$('vModel').addEventListener('change', function () { renderStudioFields('video'); });
-
-async function submitJob(kind) {
-  const model = selectedModel(kind);
-  const message = $(kind === 'image' ? 'iMsg' : 'vMsg');
-  const target = $(kind === 'image' ? 'iJob' : 'vJob');
-  message.textContent = '';
-  if (!model) {
-    message.textContent = 'Pick a model first.';
-    return;
-  }
-  const prompt = $(kind === 'image' ? 'iPrompt' : 'vPrompt').value.trim();
-  if (!prompt) {
-    message.textContent = 'Write a prompt first.';
-    return;
-  }
-  try {
-    const res = await api('POST', '/api/generations/' + kind + 's', {
-      model_pk: model.id, prompt: prompt, params: collectParams(kind)
-    });
-    message.textContent = 'Job ' + res.data.id + ' submitted.';
-    watchJob(res.data.id, target);
-  } catch (error) {
-    showError(target, error);
-    if (error.code === 'duplicate_submission' && error.details && error.details.job_id) {
-      watchJob(error.details.job_id, target);
-    }
-  }
-}
-
-function watchJob(jobId, target) {
-  clearInterval(state.jobTimers[jobId]);
-  const paint = async function () {
-    try {
-      const res = await api('GET', '/api/jobs/' + jobId);
-      renderJob(res.data, target);
-      if (['succeeded', 'failed', 'cancelled'].indexOf(res.data.status) !== -1) {
-        clearInterval(state.jobTimers[jobId]);
-        delete state.jobTimers[jobId];
-        if (res.data.status === 'succeeded') loadLibrary();
-      }
-    } catch (error) {
-      clearInterval(state.jobTimers[jobId]);
-      showError(target, error);
-    }
-  };
-  paint();
-  state.jobTimers[jobId] = setInterval(paint, 1200);
-}
-
-function renderJob(job, target) {
-  const statusClass = job.status === 'succeeded' ? 'ok'
-    : (job.status === 'failed' ? 'bad' : 'warn');
-  const parts = [el('div', { class: 'row', style: 'margin-bottom:10px' }, [
-    el('span', { class: 'chip ' + statusClass, text: job.status }),
-    el('span', { class: 'muted mono', text: job.id }),
-    el('span', { class: 'muted', text: job.progress + '%' }),
-    job.provider === 'mock' ? el('span', { class: 'chip warn', text: 'offline demo' }) : null
-  ])];
-
-  if (job.status === 'failed' && job.error) {
-    parts.push(banner(job.error.message + ' — code: ' + job.error.code, 'bad'));
-  }
-
-  if (job.outputs && job.outputs.length) {
-    const grid = el('div', { class: 'thumbs' });
-    job.outputs.forEach(function (output) {
-      if (!output.asset_id) return;
-      const url = '/api/assets/' + output.asset_id + '/raw';
-      const isVideo = (output.mime || '').indexOf('video/') === 0;
-      const media = isVideo
-        ? el('video', { src: url, controls: 'controls' })
-        : el('img', { src: url, alt: 'generated output', loading: 'lazy' });
-      grid.appendChild(el('div', { class: 'thumb' }, [
-        media,
-        el('div', { class: 'cap' }, [
-          el('a', { href: url, download: '', text: 'download' }),
-          output.width ? ' · ' + output.width + '×' + output.height : ''
-        ])
-      ]));
-    });
-    parts.push(grid);
-  }
-
-  if (job.events && job.events.length) {
-    const steps = el('ul', { class: 'steps' });
-    job.events.forEach(function (event) {
-      steps.appendChild(el('li', {}, [
-        el('span', { class: 't muted', text: (event.created_at || '').slice(11, 19) }),
-        el('span', { text: event.to_status + (event.detail ? ' · ' + event.detail : '') })
-      ]));
-    });
-    parts.push(el('div', { style: 'margin-top:14px' }, [el('h2', { text: 'History' }), steps]));
-  }
-
-  if (['queued', 'running', 'cancelling'].indexOf(job.status) !== -1) {
-    parts.push(el('div', { class: 'row', style: 'margin-top:12px' }, [
-      el('button', { class: 'ghost', text: 'Cancel',
-        onclick: function () { cancelJob(job.id, target); } })
-    ]));
-  }
-  target.replaceChildren.apply(target, parts);
-}
-
-async function cancelJob(jobId, target) {
-  try {
-    await api('POST', '/api/jobs/' + jobId + '/cancel');
-  } catch (error) {
-    showError(target, error);
-  }
-}
-
-async function loadLibrary() {
-  const grid = $('libGrid');
-  try {
-    const res = await api('GET', '/api/assets?limit=60');
-    if (!res.assets.length) {
-      grid.replaceChildren(el('div', { class: 'empty',
-        text: 'Nothing here yet. Generated outputs appear automatically.' }));
-      return;
-    }
-    grid.replaceChildren.apply(grid, res.assets.map(function (asset) {
-      const url = '/api/assets/' + asset.id + '/raw';
-      const media = asset.media_type === 'video'
-        ? el('video', { src: url, controls: 'controls' })
-        : el('img', { src: url, alt: asset.name, loading: 'lazy' });
-      return el('div', { class: 'thumb' }, [
-        media,
-        el('div', { class: 'cap' }, [
-          el('div', { text: asset.name,
-            style: 'color:#16181b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }),
-          el('div', { text: asset.media_type + ' · ' + Math.round(asset.bytes / 1024) + ' KB' }),
-          el('a', { href: url, download: '', text: 'download' })
-        ])
-      ]);
-    }));
-  } catch (error) {
-    showError(grid, error);
-  }
-}
-
-async function uploadAsset(file) {
-  const message = $('libMsg');
-  message.textContent = 'Reading the file…';
-  try {
-    const base64 = await new Promise(function (resolve, reject) {
-      const reader = new FileReader();
-      reader.onload = function () { resolve(String(reader.result).split(',')[1]); };
-      reader.onerror = function () { reject(new Error('could not read the file')); };
-      reader.readAsDataURL(file);
-    });
-    await api('POST', '/api/assets/upload', {
-      filename: file.name, mime: file.type, data: base64
-    });
-    message.textContent = 'Uploaded.';
-    await loadLibrary();
-  } catch (error) {
-    message.textContent = '';
-    showError($('libGrid'), error);
-  }
-}
-
-$('libUpload').addEventListener('click', function () { $('libFile').click(); });
-$('libFile').addEventListener('change', function (event) {
-  const file = event.target.files && event.target.files[0];
-  if (file) uploadAsset(file);
-  event.target.value = '';
-});
-$('libRefresh').addEventListener('click', loadLibrary);
-
-async function loadUsage() {
-  const body = $('usageBody');
-  try {
-    const res = await api('GET', '/api/analytics?days=30');
-    const data = res.data;
-    const parts = [];
-    const counts = data.jobs_by_status || {};
-    const chips = el('div', { class: 'row', style: 'margin-bottom:12px' });
-    Object.keys(counts).forEach(function (status) {
-      const cls = status === 'succeeded' ? 'ok' : (status === 'failed' ? 'bad' : '');
-      chips.appendChild(el('span', { class: 'chip ' + cls, text: status + ': ' + counts[status] }));
-    });
-    parts.push(chips);
-
-    if (data.estimated_cost === null) {
-      parts.push(banner('No cost shown: ' + data.cost_note, 'warn'));
-    } else {
-      parts.push(banner('Estimated ' + data.estimated_cost + ' ' + data.currency +
-        ' across ' + data.cost_known_for + ' of ' + data.cost_records +
-        ' record(s). ' + data.cost_note, 'warn'));
-    }
-
-    if (data.avg_latency_seconds !== null) {
-      parts.push(el('p', { class: 'muted', text: 'Average job time: ' + data.avg_latency_seconds + 's' }));
-    }
-
-    if ((data.by_model || []).length) {
-      parts.push(el('h2', { text: 'By model' }));
-      data.by_model.forEach(function (row) {
-        parts.push(el('div', { class: 'item' }, [
-          el('div', { class: 'grow' }, [
-            el('div', { class: 'name mono', text: row.model_id }),
-            el('div', { class: 'muted', text: row.jobs + ' job(s) · ' + row.quantity +
-              ' output(s) · cost ' + (row.estimated_cost === null ? 'unknown'
-                : row.estimated_cost + ' ' + data.currency) })
-          ])
-        ]));
-      });
-    } else {
-      parts.push(el('div', { class: 'empty', text: 'No generations recorded yet.' }));
-    }
-
-    body.replaceChildren.apply(body, parts);
-  } catch (error) {
-    showError(body, error);
-  }
-}
-
-$('usageRefresh').addEventListener('click', loadUsage);
-$('cAdd').addEventListener('click', addConnection);
-$('cKind').addEventListener('change', function () {
-  const mock = $('cKind').value === 'mock';
-  $('cBase').disabled = mock;
-  $('cKey').disabled = mock;
-  $('cBase').placeholder = mock ? 'mock://offline (no network)' : 'https://your-gateway/v1';
-});
-$('fetchModels').addEventListener('click', fetchProviderModels);
-$('iGenerate').addEventListener('click', function () { submitJob('image'); });
-$('vGenerate').addEventListener('click', function () { submitJob('video'); });
-
-(async function init() {
-  await loadHealth();
-  await loadConnections();
-  await loadModels();
-})();
-</script>
+<script src="/studio.js"></script>
 </body>
 </html>
