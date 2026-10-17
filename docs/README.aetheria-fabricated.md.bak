@@ -1,0 +1,245 @@
+# Aetheria AI Creative Studio
+
+A full-stack AI-powered creative studio for generating, managing, and analyzing AI-generated images using Flux 1.1 Pro and SDXL models.
+
+## Features
+
+- **Chat Studio**: Interactive AI-powered image generation with natural language prompts
+- **Asset Library**: Masonry gallery with advanced filtering and asset management
+- **Analytics Dashboard**: Real-time usage tracking, quota monitoring, and performance metrics
+- **Project Management**: Organize generations into projects with custom settings
+- **Real-time Updates**: WebSocket-based live generation progress tracking
+- **User Authentication**: Secure JWT-based authentication with role-based access
+
+## Tech Stack
+
+### Frontend
+- React 18 with Vite
+- React Router for navigation
+- Tailwind CSS with custom Material Design color system
+- Axios for API communication
+- Context API for state management
+
+### Backend
+- Node.js + Express
+- MongoDB with Mongoose ODM
+- Redis for caching (optional)
+- Socket.IO for real-time updates
+- JWT authentication
+- RESTful API architecture
+
+### AI Integration
+- Replicate API (Flux 1.1 Pro, SDXL)
+- Support for multiple AI models
+- Batch generation capabilities
+- Quality scoring and asset ranking
+
+## Installation
+
+### Prerequisites
+- Node.js 18+ 
+- MongoDB 6+
+- Redis (optional, for caching)
+
+### Setup
+
+1. **Clone and install dependencies:**
+```bash
+npm install
+```
+
+2. **Configure environment variables:**
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your configuration:
+```env
+# Server
+PORT=5000
+NODE_ENV=development
+
+# Database
+MONGODB_URI=mongodb://localhost:27017/aetheria-studio
+
+# JWT
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+JWT_EXPIRE=7d
+
+# AI API Keys
+REPLICATE_API_TOKEN=your-replicate-api-token
+ANTHROPIC_API_KEY=your-anthropic-api-key
+
+# Redis (optional)
+REDIS_URL=redis://localhost:6379
+
+# Frontend
+VITE_API_URL=http://localhost:5000/api
+```
+
+3. **Start MongoDB:**
+```bash
+# On Windows with MongoDB installed:
+mongod
+
+# On macOS/Linux:
+sudo service mongod start
+```
+
+4. **Start Redis (optional):**
+```bash
+redis-server
+```
+
+5. **Run the application:**
+```bash
+# Development (runs both frontend and backend)
+npm run dev
+
+# Backend only
+npm run server
+
+# Frontend only
+npm run client
+```
+
+6. **Build for production:**
+```bash
+npm run build
+```
+
+## API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login user
+- `GET /api/auth/me` - Get current user profile
+- `PUT /api/auth/profile` - Update user profile
+
+### Projects
+- `POST /api/projects` - Create project
+- `GET /api/projects` - List projects
+- `GET /api/projects/:id` - Get project details
+- `PUT /api/projects/:id` - Update project
+- `DELETE /api/projects/:id` - Delete project
+- `GET /api/projects/:id/analytics` - Get project analytics
+
+### Generations
+- `POST /api/generations` - Create generation
+- `POST /api/generations/batch` - Batch generate
+- `GET /api/generations` - List generations
+- `GET /api/generations/:id` - Get generation details
+- `POST /api/generations/:id/cancel` - Cancel generation
+
+### Assets
+- `GET /api/assets` - List assets
+- `GET /api/assets/top` - Get top-performing assets
+- `GET /api/assets/:id` - Get asset details
+- `PUT /api/assets/:id` - Update asset metadata
+- `DELETE /api/assets/:id` - Delete asset
+- `POST /api/assets/:id/export` - Increment export count
+
+### Analytics
+- `GET /api/analytics` - Get analytics data
+- `GET /api/analytics/quota` - Get quota status
+
+## Testing
+
+Run the test suite:
+```bash
+npm test
+
+# With coverage
+npm run test:coverage
+```
+
+## Project Structure
+
+```
+aetheria-ai-studio/
+├── server/
+│   ├── config/          # Database configuration
+│   ├── controllers/     # Route controllers
+│   ├── models/          # Mongoose models
+│   ├── routes/          # API routes
+│   ├── services/        # Business logic
+│   ├── middleware/      # Auth & validation
+│   └── index.js         # Server entry point
+├── src/
+│   ├── components/      # React components
+│   ├── pages/           # Page components
+│   ├── context/         # Context providers
+│   ├── services/        # API client
+│   ├── hooks/           # Custom hooks
+│   └── main.jsx         # Frontend entry point
+├── tests/               # Test files
+├── package.json
+└── vite.config.js
+```
+
+## Features in Detail
+
+### Chat Studio
+- Natural language prompt interface
+- Real-time generation progress
+- AI-assisted prompt refinement
+- Generation history
+- Multiple model support
+
+### Asset Library
+- Masonry layout gallery
+- Advanced filtering (quality, date, model)
+- Asset inspector panel
+- Metadata editing
+- Tag management
+- Bulk operations
+
+### Analytics Dashboard
+- Compute quota tracking with visual progress
+- Generation volume charts
+- Success rate monitoring
+- Average latency metrics
+- Model usage breakdown
+- Top-performing assets
+
+## Development
+
+### Code Style
+The project follows modern JavaScript/React patterns:
+- Functional components with hooks
+- Async/await for asynchronous operations
+- ES6+ syntax
+- Modular architecture
+
+### Adding New Models
+To add support for a new AI model:
+1. Add model configuration in `server/services/imageGeneration.js`
+2. Update the `Generation` model enum
+3. Add UI options in the frontend
+
+## Deployment
+
+### Backend
+```bash
+# Set NODE_ENV to production
+NODE_ENV=production
+
+# Run with PM2
+pm2 start server/index.js --name aetheria-api
+```
+
+### Frontend
+```bash
+# Build for production
+npm run build
+
+# Serve with nginx or deploy to Vercel/Netlify
+```
+
+## License
+
+MIT License
+
+## Support
+
+For issues and questions, please open an issue on GitHub.

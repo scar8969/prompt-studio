@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>img-gen</title>
+<style>
+  :root {
+    --bg: #0e0f13; --panel: #15171d; --text: #e8e9ee; --dim: #8b8f9c;
+    --muted: #5c6070; --border: #262932; --green: #4ade80; --accent: #6c8cff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  button {
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 12px;
+  }
+  button:hover { border-color: var(--accent); }
+  input, textarea {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 7px 9px; font-size: 13px; width: 100%;
+  }
+  #app { display: grid; grid-template-columns: 260px 1fr; grid-template-rows: 48px 1fr; height: 100vh; }
+  header {
+    grid-column: 1 / 3; display: flex; align-items: center; gap: 10px;
+    padding: 0 14px; border-bottom: 1px solid var(--border); background: var(--panel);
+  }
+  #menu-btn { display: none; }
+  #status-dot {
+    width: 9px; height: 9px; border-radius: 50%; background: var(--green); flex: none;
+  }
+  #status-dot.loading { background: #f5c542; animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  #status-text { color: var(--dim); font-size: 12px; }
+  .badge {
+    font-size: 11px; padding: 3px 9px; border-radius: 999px;
+    background: var(--bg); border: 1px solid var(--border); color: var(--dim);
+    max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .view-switch { margin-left: auto; display: flex; gap: 6px; }
+  .view-switch button.on { border-color: var(--accent); color: var(--accent); }
+  aside {
+    border-right: 1px solid var(--border); background: var(--panel);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .snav { display: flex; gap: 6px; padding: 8px; border-bottom: 1px solid var(--border); }
+  .snav-btn { flex: 1; }
+  .snav-btn.on { border-color: var(--accent); color: var(--accent); }
+  #sidebar-content { flex: 1; overflow-y: auto; padding: 8px; }
+  .section { margin-bottom: 14px; }
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
+  }
+  .section-header h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); }
+  .add-btn { padding: 2px 8px; font-size: 11px; }
+  .list-item {
+    display: flex; align-items: center; gap: 6px; padding: 7px 8px; border-radius: 6px;
+    font-size: 13px; cursor: pointer; border: 1px solid transparent;
+  }
+  .list-item:hover { background: var(--bg); }
+  .list-item.active { background: var(--bg); border-color: var(--border); }
+  .list-item .actions { margin-left: auto; display: flex; gap: 4px; }
+  .list-item .actions button { padding: 1px 6px; font-size: 10px; }
+  .ghost.sm { padding: 2px 8px; font-size: 11px; }
+  main { overflow: hidden; display: flex; flex-direction: column; }
+  #chat-area { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  #chat-messages { flex: 1; overflow-y: auto; padding: 18px; }
+  .msg { display: flex; gap: 10px; margin-bottom: 14px; max-width: 760px; }
+  .msg-avatar {
+    flex: none; width: 30px; height: 30px; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center; font-size: 11px; font-weight: 700;
+    background: var(--panel); border: 1px solid var(--border); color: var(--dim);
+  }
+  .msg.user .msg-avatar { background: var(--accent); color: #fff; border-color: transparent; }
+  .msg-content { background: var(--panel); border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px; }
+  .msg-error .msg-content { border-color: #ff6b6f; color: #ffb4b6; }
+  .composer {
+    display: flex; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border); background: var(--panel);
+  }
+  .composer input { flex: 1; }
+  #send-btn.loading { opacity: .55; pointer-events: none; }
+  .hint { font-size: 10px; color: var(--muted); margin-top: 4px; }
+  #gallery-area { display: none; flex: 1; overflow-y: auto; padding: 18px; min-height: 0; }
+  #gallery-area.on { display: block; }
+  #gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .card {
+    position: relative; border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; background: var(--panel);
+  }
+  .card img { display: block; width: 100%; height: 160px; object-fit: cover; cursor: pointer; }
+  .card-actions {
+    position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; opacity: 0; transition: opacity .15s;
+  }
+  .card:hover .card-actions { opacity: 1; }
+  .card-actions button { padding: 2px 7px; font-size: 11px; }
+  .card .meta {
+    display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    padding: 7px 9px; font-size: 11px; color: var(--dim);
+  }
+  .model-badge {
+    font-size: 9px; padding: 2px 6px; border-radius: 999px;
+    background: var(--bg); border: 1px solid var(--border); color: var(--muted); flex: none;
+  }
+  .empty-state { color: var(--dim); text-align: center; padding: 60px 0; font-size: 14px; }
+  #modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 50;
+    align-items: flex-start; justify-content: center; padding: 6vh 16px; overflow-y: auto;
+  }
+  #modal-overlay.on { display: flex; }
+  #modal {
+    width: 520px; max-width: 100%; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px;
+  }
+  .field { margin-bottom: 10px; flex: 1; }
+  .field label { display: block; font-size: 11px; color: var(--dim); margin-bottom: 4px; }
+  .field-group { border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+  .field-group h4 { margin: 0 0 8px; font-size: 12px; color: var(--dim); }
+  .row { display: flex; gap: 10px; }
+  .btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .btns .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  #lightbox {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 60;
+    align-items: center; justify-content: center; cursor: zoom-out;
+  }
+  #lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 8px; }
+  #toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 20px);
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    padding: 10px 16px; border-radius: 8px; font-size: 13px; opacity: 0; pointer-events: none;
+    transition: opacity .2s, transform .2s; z-index: 70; max-width: 80vw;
+  }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+  #toast.show.error { border-color: #ff6b6f; color: #ffb4b6; }
+  @media (max-width: 760px) {
+    #app { grid-template-columns: 1fr; }
+    header { grid-column: 1; }
+    aside { position: fixed; top: 48px; bottom: 0; left: 0; width: 260px; z-index: 40; transform: translateX(-100%); transition: transform .2s; }
+    aside.mobile { transform: translateX(0); }
+    #menu-btn { display: inline-block; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <button id="menu-btn" aria-label="toggle sidebar">≡</button>
+    <div id="status-dot" aria-hidden="true"></div>
+    <span id="status-text" aria-live="polite">ready</span>
+    <span class="badge" id="project-badge">no project</span>
+    <span class="badge" id="preset-badge">no preset</span>
+    <div class="view-switch">
+      <button id="switch-chat" class="on">chat</button>
+      <button id="switch-gallery">gallery</button>
+    </div>
+  </header>
+
+  <aside id="sidebar">
+    <div class="snav">
+      <button class="snav-btn on" data-panel="projects">Projects</button>
+      <button class="snav-btn" data-panel="presets">Presets</button>
+    </div>
+    <div id="sidebar-content"></div>
+  </aside>
+
+  <main>
+    <section id="chat-area">
+      <div id="chat-messages" aria-live="polite"></div>
+      <div class="composer">
+        <textarea id="prompt" rows="2" placeholder="Describe what you want to create..."></textarea>
+        <div>
+          <button id="send-btn">Send</button>
+          <div class="hint">Ctrl+Enter</div>
+        </div>
+      </div>
+    </section>
+    <section id="gallery-area">
+      <div id="gallery-grid"></div>
+    </section>
+  </main>
+</div>
+
+<div id="lightbox" aria-label="image preview"><img id="lbimg" alt=""></div>
+<div id="modal-overlay"><div id="modal" role="dialog" aria-modal="true"></div></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="/src/app.js"></script>
+</body>
+</html>

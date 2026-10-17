@@ -1,0 +1,48 @@
+# img-gen — bugs & improvement plan
+
+## critical bugs (js errors — page broken)
+
+1.  line 159 — `apiKey:*** model:"dall-e-3"`
+    missing comma + corrupted value. should be:
+    `apiKey:"", model:"dall-e-3"`
+    → causes SyntaxError, entire script dies
+
+2.  line 176 — `$( ("model")`
+    double opening paren — should be `$("model")`
+    → causes SyntaxError on model chip init
+
+## functional issues (features exist but don't work)
+
+3.  resolution tier (resTier) does nothing
+    — saved to localStorage but never used to set size
+    — need: map 1k→1024, 2k→2048, 4k→4096 when generating
+
+4.  style preset "none" appends empty string → `", "` added to prompt
+    — need: skip if value is empty string
+
+5.  ratio chips don't save to config presets
+    — ratio is in FIELDS but not in the preset save/load flow
+
+6.  config presets don't include stylePreset or ratio state
+    — only FIELDS are saved, localStorage keys like imgen_stylePreset are not
+
+7.  reference image state lost on page reload
+    — refB64 is a js variable, not recovered from localStorage
+
+## improvements (quality of life)
+
+8.  empty gallery state — show "no images yet" placeholder
+9.  gallery clear button — remove all images
+10. prompt/neg not saved to config presets (only autosaved per-field)
+11. no copy-to-clipboard for generated image URLs
+12. keyboard shortcut ctrl+s to save config
+13. generate button should show spinner while loading
+14. model chips: add "custom" chip that focuses the model input
+15. file size validation for reference image (>10MB warn)
+16. server: add health endpoint /api/health
+
+## phase order
+
+p0 (fix right now)  → lines 159, 176 syntax errors
+p1 (functional)    → 3, 4, 5, 6, 7
+p2 (polish)        → 8-16

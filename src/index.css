@@ -1,0 +1,194 @@
+/* Enhanced CSS with proper animations following Emil's principles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Custom easing curves - stronger than built-in CSS */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  body {
+    @apply bg-background text-on-surface antialiased font-body-base;
+  }
+
+  /* Custom scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #0c0e11;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #333538;
+    border-radius: 2px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #464554;
+  }
+
+  /* Canvas background pattern */
+  .canvas-dots {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Active selection glow */
+  .card-active-glow {
+    box-shadow: 0 0 0 1px #8083ff, 0 0 16px rgba(99, 102, 241, 0.35);
+  }
+}
+
+@layer components {
+  /* Button press feedback - all buttons must feel responsive */
+  .btn-primary,
+  .btn-secondary,
+  button:not(.btn-no-press) {
+    transition: transform 160ms var(--ease-out), opacity 200ms var(--ease-out);
+  }
+
+  .btn-primary:active,
+  .btn-secondary:active,
+  button:not(.btn-no-press):active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  /* Hover states only for devices with fine pointers */
+  @media (hover: hover) and (pointer: fine) {
+    .hover-lift:hover {
+      transform: translateY(-1px);
+    }
+
+    .hover-scale:hover {
+      transform: scale(1.02);
+    }
+  }
+
+  /* Message entry animation */
+  .message-enter {
+    animation: messageEnter 200ms var(--ease-out) forwards;
+  }
+
+  @keyframes messageEnter {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Stagger for multiple items */
+  .stagger-item {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: fadeInUp 250ms var(--ease-out) forwards;
+  }
+
+  .stagger-item:nth-child(1) { animation-delay: 0ms; }
+  .stagger-item:nth-child(2) { animation-delay: 50ms; }
+  .stagger-item:nth-child(3) { animation-delay: 100ms; }
+  .stagger-item:nth-child(4) { animation-delay: 150ms; }
+  .stagger-item:nth-child(5) { animation-delay: 200ms; }
+  .stagger-item:nth-child(6) { animation-delay: 250ms; }
+
+  @keyframes fadeInUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Modal/Toast enter animation */
+  .modal-enter,
+  .toast-enter {
+    opacity: 0;
+    transform: scale(0.96);
+    animation: modalEnter 200ms var(--ease-out) forwards;
+  }
+
+  @keyframes modalEnter {
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Loading spinner - faster spinner = perceived faster app */
+  .spinner-fast {
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Image load fade in */
+  .img-fade-in {
+    animation: imageFadeIn 300ms var(--ease-out) forwards;
+  }
+
+  @keyframes imageFadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Reduced motion: keep helpful animations, remove motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+
+    /* Keep opacity transitions for context */
+    .message-enter,
+    .modal-enter,
+    .toast-enter,
+    .stagger-item {
+      animation: fadeOnly 200ms ease forwards !important;
+    }
+
+    @keyframes fadeOnly {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  }
+}
+
+@layer utilities {
+  /* Transition utilities with proper properties specified */
+  .transition-transform-200 {
+    transition: transform 200ms var(--ease-out);
+  }
+
+  .transition-opacity-200 {
+    transition: opacity 200ms var(--ease-out);
+  }
+
+  .transition-colors-150 {
+    transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+  }
+
+  /* Never use transition: all */
+  .transition-base {
+    transition: transform 200ms var(--ease-out), opacity 200ms var(--ease-out);
+  }
+}

@@ -1,0 +1,8 @@
+# Runtime dependencies for Prompt Studio.
+#
+# Deliberately short. The web server, the database layer, the HTTP client and the
+# crypto wiring are all standard library; these three are here because media work and
+# real encryption are not things to hand-roll.
+cryptography>=42        # Fernet encryption for stored provider keys
+pillow>=10              # reading uploaded images / rendering the demo placeholder
+numpy>=1.26             # image inspection helper used by the asset pipeline
