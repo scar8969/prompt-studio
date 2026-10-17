@@ -8,3 +8,6 @@ venv/
 *.log
 node_modules/
 .vercel/
+
+.vercel
+.env*

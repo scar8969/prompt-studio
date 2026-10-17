@@ -168,13 +168,36 @@ class TestListing:
 
 class TestRecovery:
     def test_an_interrupted_job_is_requeued(self, client, mock_connection):
-        """A job left running by a crash is put back in the queue (spec §21)."""
+        """A job left running by a dead worker is put back in the queue (spec §21).
+
+        With leases, "interrupted" has a precise meaning: `running` with no live claim.
+        A job whose lease is still valid is deliberately left alone, because another
+        invocation may genuinely be working on it — so this sets an expired lease to
+        model the dead worker rather than just flipping the status.
+        """
         from app.services import jobs as jobs_service
 
         code, body = _submit(client, mock_connection["image_pk"], "interrupted")
         job_id = body["data"]["id"]
-        store.execute("UPDATE generation_jobs SET status='running' WHERE id=?", (job_id,))
+        store.execute(
+            "UPDATE generation_jobs SET status='running', lease_token='lease_dead', "
+            "lease_until='2000-01-01T00:00:00Z' WHERE id=?", (job_id,))
         count = jobs_service.requeue_unfinished()
         assert count >= 1
-        row = store.row("SELECT status FROM generation_jobs WHERE id=?", (job_id,))
+        row = store.row("SELECT status, lease_token FROM generation_jobs WHERE id=?", (job_id,))
         assert row["status"] in ("queued", "running", "succeeded")
+        assert row["lease_token"] == "", "an abandoned claim must be cleared"
+
+    def test_a_job_with_a_live_lease_is_left_alone(self, client, mock_connection):
+        """The other half: a valid claim is not stolen from a working invocation."""
+        from app.services import jobs as jobs_service
+
+        code, body = _submit(client, mock_connection["image_pk"], "still working")
+        job_id = body["data"]["id"]
+        store.execute(
+            "UPDATE generation_jobs SET status='running', lease_token='lease_live', "
+            "lease_until='2999-01-01T00:00:00Z' WHERE id=?", (job_id,))
+        jobs_service.requeue_unfinished()
+        row = store.row("SELECT status, lease_token FROM generation_jobs WHERE id=?", (job_id,))
+        assert row["status"] == "running"
+        assert row["lease_token"] == "lease_live"

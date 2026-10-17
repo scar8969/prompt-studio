@@ -8,6 +8,7 @@ the dispatcher, so no handler formats an error itself and none can leak a traceb
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any, Dict, Tuple
 
 from .. import capabilities as caps
@@ -33,9 +34,34 @@ def health(req: Request) -> Tuple[Dict[str, Any], int]:
     from ..adapters import names as adapter_names
     from ..config import ALLOW_PRIVATE_UPSTREAM, ENV
 
+    from .. import storage
+    from ..config import IS_PRODUCTION, IS_SERVERLESS
+
+    db_health = store.health()
+    # On a serverless deployment a missing DATABASE_URL or blob token is the difference
+    # between a working app and one that silently loses every job and file. It is
+    # reported here rather than discovered on the first upload.
+    problems = []
+    if IS_SERVERLESS:
+        if store.dialect() != "postgres":
+            problems.append("DATABASE_URL is not set: the database is a local file that "
+                            "will not survive this invocation.")
+        if storage.backend() == "disk":
+            problems.append("BLOB_READ_WRITE_TOKEN is not set: stored files will be lost.")
+    if IS_PRODUCTION and not os.getenv("CRON_SECRET", "").strip():
+        problems.append("CRON_SECRET is not set: the job tick will refuse to run.")
+    from ..config import ensure_dirs
+
+    for failure in ensure_dirs():
+        problems.append(f"A writable directory could not be created ({failure}).")
+
     return {
-        "status": "ok",
+        "status": "ok" if not problems else "degraded",
         "env": ENV,
+        "serverless": IS_SERVERLESS,
+        "storage": storage.backend(),
+        "database": db_health,
+        "problems": problems,
         "adapters": adapter_names(),
         "schema_version": store.schema_version(),
         "counts": {
@@ -356,3 +382,65 @@ def assistant_reply(req: Request) -> Tuple[Dict[str, Any], int]:
     model_pk = req.string("model_pk", "")
     return {"data": assistant.reply(message, model_pk=model_pk,
                                     history=[h for h in history if isinstance(h, dict)])}, 200
+
+
+# ===========================================================================
+# The model catalogue (§24.7) — every model, and whether its key is set
+# ===========================================================================
+
+@router.get("/api/catalog")
+def catalog_index(req: Request) -> Tuple[Dict[str, Any], int]:
+    """Every catalogue model, with whether it is configured.
+
+    A model with no key reports `configured: false` and the variables it needs, so an
+    operator can see what is missing without reading the env file.
+    """
+    from .. import catalog as catalog_module
+
+    return {
+        "data": catalog_module.all_models(),
+        "summary": catalog_module.summary(),
+    }, 200
+
+
+@router.post("/api/catalog/seed")
+def catalog_seed(req: Request) -> Tuple[Dict[str, Any], int]:
+    """Register every configured catalogue model. Idempotent."""
+    from .. import catalog as catalog_module
+
+    return {"data": catalog_module.seed_missing_models()}, 200
+
+
+# ===========================================================================
+# The job tick (§24.10 on a platform without background threads)
+# ===========================================================================
+
+@router.get("/api/cron/tick")
+def cron_tick(req: Request) -> Tuple[Dict[str, Any], int]:
+    """Claim and run jobs. This is what drives the queue on serverless.
+
+    Guarded by `CRON_SECRET` when it is set. In production with no secret the endpoint
+    refuses: an open endpoint that spends provider credit on demand is worse than a
+    stalled queue, and a stalled queue is visible immediately.
+    """
+    import hmac
+    import os
+
+    from ..config import IS_PRODUCTION
+    from ..services import runner
+
+    secret = os.getenv("CRON_SECRET", "").strip()
+    if secret:
+        header = (req.headers.get("authorization") or "").strip()
+        expected = f"Bearer {secret}"
+        if not hmac.compare_digest(header, expected):
+            raise ApiError("forbidden", "That cron call is not authorised.", status=401)
+    elif IS_PRODUCTION:
+        raise ApiError(
+            "forbidden",
+            "CRON_SECRET is not set, so the job tick will not run. Set it and add the "
+            "same value to the cron request header.", status=403)
+
+    budget = float(os.getenv("TICK_BUDGET_SECONDS", "8"))
+    result = runner.run_batch(limit=3, budget_seconds=budget)
+    return {"data": result}, 200

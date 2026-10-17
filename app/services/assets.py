@@ -14,6 +14,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import io
+import os
 import json
 import logging
 import re
@@ -22,6 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .. import store
 from ..config import MAX_IMAGE_DIM, MAX_UPLOAD_BYTES, UPLOAD_DIR
+from .. import storage
 from ..errors import ApiError, not_found
 
 log = logging.getLogger("studio.assets")
@@ -135,6 +137,34 @@ def inspect_video(data: bytes, path: Path) -> Dict[str, Any]:
     return meta
 
 
+
+def _probe_video_bytes(data: bytes, suffix: str) -> Dict[str, Any]:
+    """Video metadata from bytes, using a temporary file for ffprobe.
+
+    Stored objects may live on Blob, so there is no durable local path to probe. A temp
+    file keeps `ffprobe` working and is removed immediately; without ffprobe the fields
+    stay empty and `probed` is false, as before.
+    """
+    import shutil
+    import tempfile
+
+    meta: Dict[str, Any] = {"probed": False,
+                            "format": "mp4" if data[4:8] == b"ftyp" else "webm"}
+    if not shutil.which("ffprobe"):
+        return meta
+    handle, temp_path = tempfile.mkstemp(suffix=suffix)
+    try:
+        with os.fdopen(handle, "wb") as fh:
+            fh.write(data)
+        meta.update(inspect_video(data, Path(temp_path)))
+    finally:
+        try:
+            os.unlink(temp_path)
+        except OSError:
+            pass
+    return meta
+
+
 def store_upload(filename: str, declared_mime: str, data: bytes, *,
                  project_id: Optional[str] = None, name: str = "") -> Dict[str, Any]:
     """Validate and persist an upload. Returns the public asset."""
@@ -150,29 +180,28 @@ def store_upload(filename: str, declared_mime: str, data: bytes, *,
     asset_id = store.new_id("ast_")
     safe = sanitize_filename(filename or "upload")
     suffix = Path(safe).suffix or (".png" if actual.startswith("image/") else ".mp4")
+    # The key is what both backends address the object by; on Blob it is the object path,
+    # on disk it is the filename under uploads/.
     relative = f"{asset_id}{suffix}"
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    target = (UPLOAD_DIR / relative).resolve()
-    try:
-        target.relative_to(UPLOAD_DIR.resolve())
-    except ValueError:                                        # pragma: no cover
-        raise ApiError("invalid_field", "That filename cannot be stored.")
 
     if actual.startswith("image/"):
         dims = inspect_image(data)
         media_type, width, height, duration_ms, extra = "image", dims["width"], dims["height"], None, dims
     else:
-        # Written before probing, because probing reads the file.
-        target.write_bytes(data)
-        extra = inspect_video(data, target)
+        # Probing needs a file on disk, so video metadata is read from a temporary copy.
+        # The stored object still goes through the backend, so Blob deployments keep the
+        # same code path.
+        extra = _probe_video_bytes(data, suffix)
         media_type = "video"
         width, height = extra.get("width"), extra.get("height")
         duration_ms = extra.get("duration_ms")
 
-    if not target.exists():
-        target.write_bytes(data)
+    try:
+        stored = storage.put(relative, data, actual)
+    except storage.StorageError as exc:
+        raise ApiError("storage_failure", f"The file could not be stored: {exc}", status=500)
+    digest = stored.get("sha256") or hashlib.sha256(data).hexdigest()
 
-    digest = hashlib.sha256(data).hexdigest()
     now = store.utcnow()
     store.execute(
         "INSERT INTO assets (id, owner_id, project_id, name, media_type, mime, bytes, "
@@ -180,7 +209,8 @@ def store_upload(filename: str, declared_mime: str, data: bytes, *,
         "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (asset_id, OWNER, project_id or None, name or sanitize_filename(filename),
          media_type, actual, len(data), width, height, duration_ms, relative, digest,
-         "upload", store.dumps(extra), now))
+         "upload", store.dumps({**extra, "storage": stored["backend"],
+                                "public_url": stored["url"]}), now))
     return get_asset(asset_id)["asset"]
 
 
@@ -191,13 +221,10 @@ def store_generated_bytes(job: Dict[str, Any], data: bytes, mime: str,
     suffix = {"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp",
               "video/mp4": ".mp4", "video/webm": ".webm"}.get(mime, ".bin")
     relative = f"{asset_id}{suffix}"
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    target = (UPLOAD_DIR / relative).resolve()
     try:
-        target.relative_to(UPLOAD_DIR.resolve())
-    except ValueError:                                        # pragma: no cover
-        raise ApiError("storage_failure", "The output path was refused.", status=500)
-    target.write_bytes(data)
+        stored = storage.put(relative, data, mime)
+    except storage.StorageError as exc:
+        raise ApiError("storage_failure", f"The output could not be stored: {exc}", status=500)
 
     meta: Dict[str, Any] = {}
     width = height = duration_ms = None
@@ -217,8 +244,9 @@ def store_generated_bytes(job: Dict[str, Any], data: bytes, mime: str,
         (asset_id, job["owner_id"], job["project_id"],
          f"{(job.get('prompt') or 'output')[:60]} #{position + 1}",
          "video" if mime.startswith("video/") else "image", mime, len(data),
-         width, height, duration_ms, relative, hashlib.sha256(data).hexdigest(),
-         "generated", store.dumps(meta), store.utcnow()))
+         width, height, duration_ms, relative, stored.get("sha256", ""),
+         "generated", store.dumps({**meta, "storage": stored["backend"],
+                                   "public_url": stored["url"]}), store.utcnow()))
     return asset_id
 
 
@@ -292,25 +320,22 @@ def asset_file(asset_id: str) -> Tuple[Path, str, str]:
     """Resolve an asset to a file on disk, refusing anything outside the upload root."""
     found = get_asset(asset_id)
     row = found["row"]
-    candidate = (UPLOAD_DIR / row["path"]).resolve()
+    # The bytes come from whichever backend stored them. On disk this is the same file
+    # as before; on Blob it is fetched, so `asset_file` returns bytes rather than a path.
     try:
-        candidate.relative_to(UPLOAD_DIR.resolve())
-    except ValueError:
-        raise ApiError("not_found", "No such asset.", status=404)
-    if not candidate.is_file():
+        data, _ = storage.get(row["path"])
+    except storage.StorageError:
         raise ApiError("not_found", "That asset's file is missing.", status=404)
-    return candidate, row["mime"] or "application/octet-stream", row["name"]
+    return data, row["mime"] or "application/octet-stream", row["name"]
 
 
 def delete_asset(asset_id: str) -> Dict[str, Any]:
     found = get_asset(asset_id)
     row = found["row"]
     try:
-        path = (UPLOAD_DIR / row["path"]).resolve()
-        if str(path).startswith(str(UPLOAD_DIR.resolve())) and path.is_file():
-            path.unlink()
-    except OSError:
-        log.warning("could not remove file for asset %s", asset_id)
+        storage.delete(row["path"])
+    except Exception:                                          # noqa: BLE001
+        log.warning("could not remove the stored file for asset %s", asset_id)
     store.execute("DELETE FROM outputs WHERE asset_id=?", (asset_id,))
     store.execute("DELETE FROM assets WHERE id=?", (asset_id,))
     return {"deleted": asset_id}

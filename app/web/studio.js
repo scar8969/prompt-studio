@@ -103,15 +103,15 @@ function showError(target, error) {
   mount(target, [errorBanner(error)]);
 }
 
-let toastTimer = 0;
-function toast(message, kind) {
+function toast(message, kind, ttl) {
   const node = el('div', { class: 'toast ' + (kind || '') }, [
     el('span', { text: message }),
     el('button', { class: 'close', text: '×', onclick: () => node.remove(), 'aria-label': 'Dismiss' }),
   ]);
   $('toasts').appendChild(node);
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => node.remove(), 5000);
+  // A degraded-deployment notice explains why lists are empty, so it stays longer than
+  // an ordinary confirmation and can be dismissed.
+  node.timer = setTimeout(() => node.remove(), ttl || 5000);
 }
 
 function fmtBytes(n) {
@@ -184,10 +184,21 @@ function go(view) {
 async function loadHealth() {
   try {
     const health = await api.get('/api/health');
-    $('healthDot').className = 'dot ok';
-    $('healthText').textContent =
-      health.counts.connections + ' conn · ' + health.counts.models + ' models · ' +
-      health.counts.jobs + ' jobs';
+    // "degraded" is a real answer, not a failure: the API is up but the deployment is
+    // missing something it needs (a durable database, blob storage, a cron secret).
+    // On a serverless platform the data is then per-instance, so a list can legitimately
+    // come back empty a moment after something was created. Saying so is the difference
+    // between "this is broken" and "this deployment is not configured yet".
+    const degraded = health.status === 'degraded';
+    $('healthDot').className = degraded ? 'dot warn' : 'dot ok';
+    $('healthText').textContent = degraded
+      ? 'degraded — data is not durable'
+      : health.counts.connections + ' conn · ' + health.counts.models + ' models · ' +
+        health.counts.jobs + ' jobs';
+    if (degraded && !state.failures.has('degraded')) {
+      state.failures.add('degraded');
+      toast('Deployment is degraded: ' + (health.problems || []).join(' '), 'warn', 12000);
+    }
     $('versionLine').textContent = 'schema v' + health.schema_version + ' · ' + health.env;
     state.failures.delete('health');
   } catch (error) {

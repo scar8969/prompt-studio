@@ -1,0 +1,34 @@
+# What gets uploaded to Vercel.
+#
+# Two problems this solves, both found by running a real build:
+#
+# 1. Without it the static layer serves the whole repository — data/, uploads/, tests/,
+#    logs, the removed scaffold — at the deployment's URL.
+# 2. `.env.local` was being pulled into the function bundle. It holds the project's OIDC
+#    token, so that is a credential in a build artifact.
+
+tests/
+scripts/
+docs/
+data/
+uploads/
+.vercel_python_packages/
+.vercel/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+*.log
+.env
+.env.*
+!.env.example
+run.bat
+run_studio.py
+requirements-dev.txt
+BUGS.md.old
+PLAN.md.old
+QUICKSTART.md
+TESTING.md
+DESIGN_REVIEW.md
+ENGINEERING_REPORT.md
+.opencode/
+.claude/

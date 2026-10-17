@@ -239,8 +239,7 @@ class StudioHandler(BaseHTTPRequestHandler):
         asset_id = path[len("/api/assets/"):-len("/raw")].strip("/")
         if not asset_id or "/" in asset_id:
             raise ApiError("not_found", "No such asset.", status=404)
-        file_path, mime, name = asset_file(asset_id)
-        data = file_path.read_bytes()
+        data, mime, name = asset_file(asset_id)
         self._send(200, data, mime,
                    {"Content-Disposition": f'inline; filename="{_safe_header(name)}"'},
                    request_id=request_id)

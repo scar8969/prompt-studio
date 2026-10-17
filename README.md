@@ -147,6 +147,11 @@ job-state transitions, duplicate submission, retry and cancellation, asset owner
 the error vocabulary. Provider behaviour is exercised against an in-process fake, and the
 test names say so — a mock test is never presented as a real generation.
 
+The deployment shape is tested too, not just described: `tests/test_deploy.py` asserts
+that every function in `api/` is covered by a `vercel.json` pattern, that the cron entry
+points at a route that exists, and that the deny rules for `/app/*`, `/data/*`,
+`/uploads/*` and `.env*` are present.
+
 ## Configuration
 
 See `.env.example`. The two values that matter:
@@ -157,6 +162,64 @@ See `.env.example`. The two values that matter:
 - **`ALLOW_PRIVATE_UPSTREAM`** — development only. Setting it to `1` lets you connect to a
   model server on localhost, and disables the SSRF guard. `app.cli check` warns when
   production has it set.
+
+## Deploy to Vercel
+
+The app runs unchanged on Vercel: three Python functions (`api/page.py` for the page,
+`api/index.py` for the whole API, `api/cron/tick.py` for the queue) and no build step.
+
+```bash
+vercel link            # project: whatever you name it
+vercel pull --environment production
+vercel env add APP_ENCRYPTION_KEY      # python -m app.cli init-key prints one
+vercel env add DATABASE_URL            # Postgres (Neon, Supabase, Vercel Postgres)
+vercel env add BLOB_READ_WRITE_TOKEN   # Storage → Blob, then the connection string
+vercel env add CRON_SECRET             # any long random string
+vercel deploy --prod
+```
+
+Then `curl https://<deployment>/api/health`. It answers `"status": "ok"` when the
+deployment is sound and `"degraded"` with a `problems` list when it is not — a missing
+Postgres URL or Blob token is reported there rather than discovered on the first upload.
+
+### What a serverless platform changes, and what it forced
+
+The spec assumes background workers and a local disk. Neither exists on Vercel, so three
+things are different — all of them configured by environment, never guessed:
+
+- **The queue is driven, not threaded.** `app/services/runner.py` claims a job with a
+  lease (`lease_token`, `lease_until`) and runs it. Submitting a job drives it inline for
+  up to `INLINE_BUDGET_SECONDS` (20) before returning the `202`; `GET /api/cron/tick`
+  is the backstop that picks up anything left. Two invocations cannot run the same job,
+  and a dead invocation's lease expires instead of blocking the queue forever.
+- **Storage is Blob, not disk.** `app/storage.py` picks a backend from configuration.
+  With no `BLOB_READ_WRITE_TOKEN` on Vercel the app reports `degraded` rather than
+  writing files that vanish when the function sleeps.
+- **The database is Postgres.** With no `DATABASE_URL` on Vercel it reports `degraded`,
+  because SQLite on an ephemeral filesystem loses every job and credential.
+
+### Two deployment problems the first real build exposed
+
+Both were found by running `vercel build` locally, not on the dashboard:
+
+1. **A stale `package.json` hijacked the build.** A leftover React/Vite scaffold from an
+   earlier draft made Vercel run `npm run build` for an app that has no Node code. It
+   moved to `docs/removed-scaffold/`. `vercel build` then detected Python and built the
+   three functions.
+2. **The whole repo was published as static.** `data/`, `uploads/`, `tests/`, logs and
+   `app/` were all downloadable. `.vercelignore` trims the upload, and `vercel.json` adds
+   explicit `404` rules for `/app/*`, `/data/*`, `/uploads/*`, `/tests/*`, `/scripts/*`
+   and `.env*` so a future routing change cannot re-expose them.
+
+### Verify a deployment
+
+Deployment Protection turns every URL into a 302 to SSO, so `curl` on the alias proves
+nothing. Use the authenticated path:
+
+```bash
+vercel curl "/api/health" --deployment <immutable-deployment-url>
+vercel curl "/" --deployment <immutable-deployment-url> | head -c 200
+```
 
 ## Known limits
 

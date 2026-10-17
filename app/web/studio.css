@@ -106,6 +106,7 @@ body {
 .dot.ok { background: var(--ok); }
 .dot.bad { background: var(--bad); }
 .dot.busy { background: var(--warn); animation: pulse 1.4s ease-in-out infinite; }
+.dot.warn { background: var(--warn); }
 @keyframes pulse { 50% { opacity: 0.35; } }
 
 /* ---------------------------------------------------------------- sidebar */

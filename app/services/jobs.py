@@ -19,7 +19,6 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import queue as queue_mod
 import threading
 import time
 from typing import Any, Dict, List, Optional
@@ -42,7 +41,6 @@ STALE_AFTER_SECONDS = max(JOB_TIMEOUT * 2, 300)
 
 _cancelled: set = set()
 _lock = threading.Lock()
-_queue: "queue_mod.Queue[str]" = queue_mod.Queue()
 _started = False
 
 
@@ -235,6 +233,22 @@ def submit(kind: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     store.log_event(job_id, "", "queued", f"submitted as {kind}")
 
     _enqueue(job_id)
+
+    # On a platform with no background threads the submit call is the only chance to make
+    # progress, so it drives the job inline for a short budget. The response is still a
+    # 202 — the job is not finished here, it is merely started. Anything left queued is
+    # picked up by the next request's drive, or by the cron tick as a backstop.
+    from ..config import IS_SERVERLESS
+
+    if IS_SERVERLESS and kind in ("image", "video"):
+        try:
+            from . import runner
+
+            runner.run_job_inline(job_id, budget_seconds=float(
+                __import__("os").getenv("INLINE_BUDGET_SECONDS", "20")))
+        except Exception:                                      # noqa: BLE001
+            log.exception("inline drive failed for %s; it stays queued", job_id)
+
     return public_job(get_job(job_id))
 
 
@@ -320,7 +334,13 @@ def retry(job_id: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 def _enqueue(job_id: str) -> None:
-    _queue.put(job_id)
+    """Signal that work is available.
+
+    There is no in-memory queue any more: a job is a `queued` row, and both drivers
+    (the local worker pool and the serverless cron tick) claim from the table. Passing a
+    message here would be a second source of truth that a frozen process could lose.
+    """
+    return None
 
 
 def _is_cancelled(job_id: str) -> bool:
@@ -331,31 +351,6 @@ def _is_cancelled(job_id: str) -> bool:
 def _clear_cancelled(job_id: str) -> None:
     with _lock:
         _cancelled.discard(job_id)
-
-
-def _run_one(job_id: str) -> None:
-    from .execution import execute_job
-
-    if _is_cancelled(job_id):
-        _clear_cancelled(job_id)
-        _transition(job_id, "cancelled", detail="cancelled before running",
-                    finished_at=store.utcnow())
-        return
-
-    row = store.row("SELECT * FROM generation_jobs WHERE id=?", (job_id,))
-    if not row or row["status"] not in ("queued", "cancelling"):
-        return
-
-    _transition(job_id, "running", detail="worker picked it up",
-                started_at=store.utcnow(), progress=5)
-    try:
-        execute_job(dict(row))
-    except ApiError as exc:
-        _fail(job_id, exc.code, exc.message, retryable=exc.code in RETRYABLE)
-    except Exception as exc:                                  # noqa: BLE001
-        # Anything unexpected is logged in full and reported in the safe shape.
-        log.exception("job %s raised unexpectedly", job_id)
-        _fail(job_id, "internal_error", "The job failed unexpectedly.", retryable=True)
 
 
 #: Provider-side problems worth another attempt; a bad request is not.
@@ -380,50 +375,22 @@ def _fail(job_id: str, code: str, message: str, *, retryable: bool) -> None:
                 error_code=code, error_message=message, finished_at=store.utcnow())
 
 
-def _worker_loop(worker_id: int) -> None:
-    while True:
-        try:
-            job_id = _queue.get(timeout=1.0)
-        except queue_mod.Empty:
-            continue
-        try:
-            _run_one(job_id)
-        except Exception:                                     # noqa: BLE001
-            log.exception("worker %s failed on %s", worker_id, job_id)
-        finally:
-            _queue.task_done()
+def start_workers(count: int = JOB_WORKERS) -> bool:
+    """Start the local worker pool. Delegates to the runner.
 
+    On serverless this returns False and does nothing — a thread started during a
+    request is frozen with the process. The cron tick drives the queue there instead.
+    """
+    from . import runner
 
-def start_workers(count: int = JOB_WORKERS) -> None:
-    global _started
-    with _lock:
-        if _started:
-            return
-        _started = True
-    for index in range(max(1, count)):
-        thread = threading.Thread(target=_worker_loop, args=(index,),
-                                  name=f"job-worker-{index}", daemon=True)
-        thread.start()
-    log.info("started %d job worker(s)", max(1, count))
+    return runner.start_workers(count)
 
 
 def requeue_unfinished() -> int:
-    """Return interrupted work to the queue on startup (spec §21).
+    """Return abandoned work to the queue. Delegates to the runner's lease logic."""
+    from . import runner
 
-    A job left ``running`` by a crash is returned to ``queued``; one that was
-    ``cancelling`` is settled as cancelled.
-    """
-    count = 0
-    for row in store.rows("SELECT id, status FROM generation_jobs WHERE status IN "
-                          "('running','cancelling')"):
-        if row["status"] == "cancelling":
-            _transition(row["id"], "cancelled", detail="cancelled during shutdown",
-                        finished_at=store.utcnow())
-        else:
-            _transition(row["id"], "queued", detail="requeued after restart")
-            _enqueue(row["id"])
-        count += 1
-    return count
+    return runner.requeue_interrupted()
 
 
 def reap_stale() -> int:

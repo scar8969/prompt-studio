@@ -335,8 +335,11 @@ def register_models(connection_id: str, models: List[Dict[str, Any]]) -> List[Di
 def _store_capabilities(model_pk: str, capabilities: List[str]) -> None:
     store.execute("DELETE FROM model_capabilities WHERE model_pk=?", (model_pk,))
     for capability in capabilities:
+        # `ON CONFLICT DO NOTHING` is understood by both SQLite (>=3.24) and Postgres;
+        # `INSERT OR IGNORE` is SQLite-only and would be a syntax error in production.
         store.execute(
-            "INSERT OR IGNORE INTO model_capabilities (model_pk, capability) VALUES (?,?)",
+            "INSERT INTO model_capabilities (model_pk, capability) VALUES (?,?) "
+            "ON CONFLICT (model_pk, capability) DO NOTHING",
             (model_pk, capability))
 
 
@@ -345,10 +348,15 @@ def _store_parameters(model_pk: str, parameters: List[Dict[str, Any]]) -> None:
     for spec in parameters:
         if not isinstance(spec, dict) or not spec.get("name"):
             continue
+        # The columns are deleted first, so a plain insert is enough and portable.
         store.execute(
-            "INSERT OR REPLACE INTO model_parameters (model_pk, name, type, "
+            "INSERT INTO model_parameters (model_pk, name, type, "
             "default_value, minimum, maximum, choices_json, required) "
-            "VALUES (?,?,?,?,?,?,?,?)",
+            "VALUES (?,?,?,?,?,?,?,?) "
+            "ON CONFLICT (model_pk, name) DO UPDATE SET "
+            "type=excluded.type, default_value=excluded.default_value, "
+            "minimum=excluded.minimum, maximum=excluded.maximum, "
+            "choices_json=excluded.choices_json, required=excluded.required",
             (model_pk, spec["name"], spec.get("type", "string"),
              None if spec.get("default") is None else str(spec["default"]),
              spec.get("minimum"), spec.get("maximum"),

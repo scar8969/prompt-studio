@@ -407,6 +407,53 @@ def delete_character(character_id: str) -> Dict[str, Any]:
 # Usage and analytics
 # ---------------------------------------------------------------------------
 
+def _since(days: int) -> str:
+    """The ISO cutoff for a window, computed here rather than in SQL.
+
+    `datetime('now', '-30 days')` is SQLite syntax; computing the bound in Python and
+    binding it as a string works identically on both engines, and keeps the timestamp
+    format consistent with what `utcnow()` writes.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    return (datetime.now(timezone.utc) - timedelta(days=max(1, int(days)))
+            ).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _parse_iso(value: Any):
+    from datetime import datetime
+
+    if not value:
+        return None
+    text = str(value).replace("Z", "").split(".")[0]
+    try:
+        return datetime.strptime(text, "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        return None
+
+
+def _average_latency() -> Optional[float]:
+    """Mean job duration in seconds, from the ISO timestamps.
+
+    `julianday()` exists only in SQLite; rather than branch on dialect, the two stamps
+    are read and subtracted here. The row count is bounded by the usage window and this
+    is only a headline number, so reading them is cheaper than a dialect-specific
+    expression that would silently be wrong on the other engine.
+    """
+    found = store.rows(
+        "SELECT started_at, finished_at FROM generation_jobs "
+        "WHERE owner_id=? AND started_at IS NOT NULL AND finished_at IS NOT NULL "
+        "AND status='succeeded' ORDER BY created_at DESC LIMIT 500", (OWNER,))
+    gaps = []
+    for row in found:
+        start, end = _parse_iso(row["started_at"]), _parse_iso(row["finished_at"])
+        if start and end and end >= start:
+            gaps.append((end - start).total_seconds())
+    if not gaps:
+        return None
+    return sum(gaps) / len(gaps)
+
+
 def usage_summary(*, days: int = 30) -> Dict[str, Any]:
     """Real totals from `usage_records`. Cost is reported as unknown when it is.
 
@@ -417,8 +464,8 @@ def usage_summary(*, days: int = 30) -> Dict[str, Any]:
     rows = store.rows(
         "SELECT provider, model_id, usage_type, quantity, estimated_cost, currency, "
         "cost_source FROM usage_records WHERE owner_id=? "
-        "AND created_at >= datetime('now', ?)",
-        (OWNER, f"-{max(1, int(days))} days"))
+        "AND created_at >= ?",
+        (OWNER, _since(days)))
 
     by_model: Dict[str, Dict[str, Any]] = {}
     total_known = 0.0
@@ -441,13 +488,10 @@ def usage_summary(*, days: int = 30) -> Dict[str, Any]:
 
     by_status = {r["status"]: r["n"] for r in store.rows(
         "SELECT status, COUNT(*) AS n FROM generation_jobs WHERE owner_id=? "
-        "AND created_at >= datetime('now', ?) GROUP BY status",
-        (OWNER, f"-{max(1, int(days))} days"))}
+        "AND created_at >= ? GROUP BY status",
+        (OWNER, _since(days)))}
 
-    latency = store.scalar(
-        "SELECT AVG((julianday(finished_at) - julianday(started_at)) * 86400) "
-        "FROM generation_jobs WHERE owner_id=? AND started_at IS NOT NULL "
-        "AND finished_at IS NOT NULL AND status='succeeded'", (OWNER,))
+    latency = _average_latency()
 
     return {
         "window_days": max(1, int(days)),

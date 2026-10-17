@@ -6,3 +6,9 @@
 cryptography>=42        # Fernet encryption for stored provider keys
 pillow>=10              # reading uploaded images / rendering the demo placeholder
 numpy>=1.26             # image inspection helper used by the asset pipeline
+
+# Only needed when DATABASE_URL points at Postgres, which is the case on any serverless
+# deployment — SQLite on an ephemeral filesystem loses everything. Installed
+# unconditionally because the import happens inside a function and a missing driver
+# would surface as a 500 on the first query rather than at build time.
+psycopg2-binary>=2.9    # Postgres driver used by app/db.py

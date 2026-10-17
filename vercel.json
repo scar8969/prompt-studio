@@ -1,0 +1,67 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "framework": null,
+  "regions": [
+    "iad1"
+  ],
+  "functions": {
+    "api/index.py": {
+      "memory": 1024,
+      "maxDuration": 60
+    },
+    "api/page.py": {
+      "memory": 512,
+      "maxDuration": 15
+    },
+    "api/cron/tick.py": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/api/page"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/tick",
+      "schedule": "0 3 * * *"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/app/(.*)",
+      "status": 404
+    },
+    {
+      "src": "/(?:data|uploads|tests|scripts)/.*",
+      "status": 404
+    },
+    {
+      "src": "/(?:requirements|pyproject|uv)\\.(?:txt|toml|lock)",
+      "status": 404
+    },
+    {
+      "src": "/\\.env.*",
+      "status": 404
+    }
+  ]
+}
