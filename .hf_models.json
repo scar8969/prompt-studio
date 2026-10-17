@@ -1,0 +1,3224 @@
+[
+ {
+  "id": "cinematic_studio_2_5",
+  "name": "Cinematic Studio 2.5",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "1:1",
+     "3:2",
+     "2:3",
+     "4:3",
+     "3:4",
+     "4:5",
+     "5:4",
+     "16:9",
+     "9:16",
+     "21:9"
+    ]
+   },
+   "batch_size": {
+    "required": false,
+    "default": "1",
+    "values": []
+   },
+   "folder_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "mode": {
+    "required": false,
+    "default": "auto",
+    "values": []
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "1k",
+    "values": [
+     "1k",
+     "2k",
+     "4k"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "flux_2",
+  "name": "FLUX.2",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "1:1",
+     "4:3",
+     "3:4",
+     "16:9",
+     "9:16"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "1k",
+    "values": [
+     "1k",
+     "2k"
+    ]
+   },
+   "variant": {
+    "required": false,
+    "default": "pro",
+    "values": [
+     "pro",
+     "flex",
+     "max"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "flux_kontext",
+  "name": "Flux Kontext",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "1:1",
+     "4:3",
+     "3:4",
+     "16:9",
+     "9:16"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "gpt_image_2",
+  "name": "GPT Image 2",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "auto",
+     "1:1",
+     "4:3",
+     "3:4",
+     "16:9",
+     "21:9",
+     "9:16",
+     "3:2",
+     "2:3",
+     "4:5",
+     "5:4"
+    ]
+   },
+   "background": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "auto",
+     "opaque",
+     "transparent"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "quality": {
+    "required": false,
+    "default": "high",
+    "values": [
+     "low",
+     "medium",
+     "high"
+    ]
+   },
+   "resolution": {
+    "required": false,
+    "default": "2k",
+    "values": [
+     "1k",
+     "2k",
+     "4k"
+    ]
+   },
+   "is_inpaint": {
+    "required": false,
+    "default": "false",
+    "values": [
+     "boolean; requires a mask and at least one reference image"
+    ]
+   },
+   "mask": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "media reference object; use with `--is_inpaint true"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "gpt_image_2_5",
+  "name": "GPT Image 2.5",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "auto",
+     "1:1",
+     "3:2",
+     "2:3",
+     "4:3",
+     "3:4",
+     "16:9",
+     "9:16",
+     "21:9",
+     "27:16",
+     "16:27",
+     "9:8",
+     "8:9",
+     "4:5",
+     "5:4"
+    ]
+   },
+   "background": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "auto",
+     "opaque",
+     "transparent"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path; at most 16"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "quality": {
+    "required": false,
+    "default": "low",
+    "values": [
+     "low",
+     "medium",
+     "high",
+     "xhigh",
+     "max"
+    ]
+   },
+   "resolution": {
+    "required": false,
+    "default": "1k",
+    "values": [
+     "1k",
+     "2k",
+     "4k"
+    ]
+   },
+   "variant": {
+    "required": false,
+    "default": "flare",
+    "values": [
+     "flare",
+     "sunburst"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "grok_image",
+  "name": "Grok Image",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "1:1",
+     "auto",
+     "1:2",
+     "2:1",
+     "3:2",
+     "2:3",
+     "4:3",
+     "3:4",
+     "16:9",
+     "9:16"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "mode": {
+    "required": false,
+    "default": "std",
+    "values": [
+     "std",
+     "quality"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "1k",
+    "values": [
+     "1k",
+     "2k"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "image_auto",
+  "name": "Image Auto",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "1:1",
+     "4:3",
+     "3:4",
+     "16:9",
+     "9:16"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "image_background_remover",
+  "name": "Image Background Remover",
+  "category": "image",
+  "flags": {
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "kling_omni_image",
+  "name": "Kling O1 Image",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "1:1",
+     "auto",
+     "16:9",
+     "9:16",
+     "4:3",
+     "3:4",
+     "3:2",
+     "2:3",
+     "21:9"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "1k",
+    "values": [
+     "1k",
+     "2k"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "marketing_studio_image",
+  "name": "Marketing Studio Image",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "auto",
+     "1:1",
+     "3:2",
+     "2:3",
+     "4:3",
+     "3:4",
+     "4:5",
+     "5:4",
+     "9:16",
+     "16:9",
+     "21:9"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "1k",
+    "values": [
+     "1k",
+     "2k",
+     "4k"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "nano_banana",
+  "name": "Nano Banana",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "1:1",
+     "3:2",
+     "2:3",
+     "4:3",
+     "3:4",
+     "4:5",
+     "5:4",
+     "9:16",
+     "16:9",
+     "21:9"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "nano_banana_2",
+  "name": "Nano Banana Pro",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "1:1",
+     "3:2",
+     "2:3",
+     "4:3",
+     "3:4",
+     "4:5",
+     "5:4",
+     "9:16",
+     "16:9",
+     "21:9"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "2k",
+    "values": [
+     "1k",
+     "2k",
+     "4k"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "nano_banana_2_lite",
+  "name": "Nano Banana 2 Lite",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "auto",
+     "1:1",
+     "3:2",
+     "2:3",
+     "4:3",
+     "3:4",
+     "4:5",
+     "5:4",
+     "9:16",
+     "16:9",
+     "21:9"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "1k",
+    "values": [
+     "1k"
+    ]
+   },
+   "thinking": {
+    "required": false,
+    "default": "HIGH",
+    "values": [
+     "MINIMAL",
+     "HIGH"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "nano_banana_flash",
+  "name": "Nano Banana 2",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "1:1",
+     "3:2",
+     "2:3",
+     "4:3",
+     "3:4",
+     "4:5",
+     "5:4",
+     "9:16",
+     "16:9",
+     "21:9"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "1k",
+    "values": [
+     "1k",
+     "2k",
+     "4k"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "openai_hazel",
+  "name": "OpenAI Hazel",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "1:1",
+     "3:2",
+     "2:3",
+     "auto"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "quality": {
+    "required": false,
+    "default": "medium",
+    "values": [
+     "low",
+     "medium",
+     "high"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "outpaint",
+  "name": "Outpaint",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "21:9",
+    "values": [
+     "auto",
+     "1:1",
+     "3:2",
+     "2:3",
+     "4:3",
+     "3:4",
+     "4:5",
+     "5:4",
+     "9:16",
+     "16:9",
+     "21:9"
+    ]
+   },
+   "folder_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "recraft_v4_1",
+  "name": "Recraft V4.1",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "1:1",
+     "3:4",
+     "4:3",
+     "4:5",
+     "5:4",
+     "3:2",
+     "2:3",
+     "16:9",
+     "9:16"
+    ]
+   },
+   "background_color": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "colors": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "array"
+    ]
+   },
+   "model_type": {
+    "required": false,
+    "default": "standard",
+    "values": [
+     "standard",
+     "vector",
+     "utility",
+     "utility_vector"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "1k",
+    "values": [
+     "1k",
+     "2k"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "seedream_v4_5",
+  "name": "Seedream 4.5",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "1:1",
+     "4:3",
+     "16:9",
+     "3:2",
+     "21:9",
+     "3:4",
+     "9:16",
+     "2:3"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "quality": {
+    "required": false,
+    "default": "basic",
+    "values": [
+     "basic",
+     "high"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "seedream_v5_lite",
+  "name": "Seedream V5 Lite",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "1:1",
+     "4:3",
+     "3:4",
+     "16:9",
+     "9:16"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "quality": {
+    "required": false,
+    "default": "basic",
+    "values": [
+     "basic",
+     "high"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "soul_cast",
+  "name": "Soul Cast",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": true,
+    "default": "\u2014",
+    "values": [
+     "16:9"
+    ]
+   },
+   "budget": {
+    "required": false,
+    "default": "50",
+    "values": []
+   },
+   "prompt": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "soul_cinematic",
+  "name": "Soul Cinematic",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "1:1",
+     "16:9",
+     "9:16",
+     "4:3",
+     "3:4",
+     "3:2",
+     "2:3",
+     "21:9"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "quality": {
+    "required": false,
+    "default": "2k",
+    "values": [
+     "1.5k",
+     "2k"
+    ]
+   },
+   "soul_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "Soul UUID"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "soul_location",
+  "name": "Soul Location",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "1:1",
+     "16:9",
+     "9:16",
+     "4:3",
+     "3:4",
+     "3:2",
+     "2:3",
+     "21:9",
+     "9:21"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "text2image_soul_v2",
+  "name": "Higgsfield Soul V2",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "1:1",
+     "16:9",
+     "9:16",
+     "4:3",
+     "3:4",
+     "3:2",
+     "2:3"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "quality": {
+    "required": false,
+    "default": "2k",
+    "values": [
+     "1.5k",
+     "2k"
+    ]
+   },
+   "soul_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "Soul UUID"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "z_image",
+  "name": "Z Image",
+  "category": "image",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "1:1",
+    "values": [
+     "1:1",
+     "4:3",
+     "3:4",
+     "16:9",
+     "9:16"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "brain_activity",
+  "name": "Virality Predictor",
+  "category": "video",
+  "flags": {
+   "folder_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "video": {
+    "required": true,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "cinematic_studio_3_0",
+  "name": "Cinematic Studio 3.0",
+  "category": "video",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "auto",
+     "21:9",
+     "16:9",
+     "4:3",
+     "1:1",
+     "3:4",
+     "9:16"
+    ]
+   },
+   "audio_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "batch_size": {
+    "required": false,
+    "default": "1",
+    "values": []
+   },
+   "duration": {
+    "required": false,
+    "default": "5",
+    "values": []
+   },
+   "end_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "enhance_prompt": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "folder_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "generate_audio": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "genre": {
+    "required": false,
+    "default": "auto",
+    "values": [
+     "auto",
+     "action",
+     "horror",
+     "comedy",
+     "noir",
+     "drama",
+     "epic"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "multi_prompt": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "array"
+    ]
+   },
+   "multi_shot_mode": {
+    "required": false,
+    "default": "custom",
+    "values": [
+     "auto",
+     "custom"
+    ]
+   },
+   "multi_shots": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "preset_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "prompt_language": {
+    "required": false,
+    "default": "zh",
+    "values": [
+     "en",
+     "zh"
+    ]
+   },
+   "resolution": {
+    "required": false,
+    "default": "720p",
+    "values": [
+     "480p",
+     "720p",
+     "1080p",
+     "4k"
+    ]
+   },
+   "speedramp": {
+    "required": false,
+    "default": "auto",
+    "values": [
+     "auto",
+     "linear",
+     "slowmo",
+     "speedup",
+     "fast_to_slowmo",
+     "slowmo_to_fast",
+     "super_slowmo",
+     "impact"
+    ]
+   },
+   "start_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "video_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "cinematic_studio_video",
+  "name": "Cinematic Studio Video",
+  "category": "video",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "1:1",
+     "4:3",
+     "3:4",
+     "16:9",
+     "9:16"
+    ]
+   },
+   "duration": {
+    "required": false,
+    "default": "5",
+    "values": [
+     "5",
+     "10"
+    ]
+   },
+   "end_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "slow_motion": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "sound": {
+    "required": false,
+    "default": "true",
+    "values": []
+   },
+   "start_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "cinematic_studio_video_3_5",
+  "name": "Cinematic Studio Video 3.5",
+  "category": "video",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "auto",
+    "values": [
+     "auto",
+     "21:9",
+     "16:9",
+     "4:3",
+     "1:1",
+     "3:4",
+     "9:16"
+    ]
+   },
+   "audio_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "camera_style": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "classic_static",
+     "silent_machine",
+     "one_take",
+     "epic_scale",
+     "intimate_observer",
+     "impossible_camera",
+     "documentary_snap",
+     "raw_chaos",
+     "dreamy_flow"
+    ]
+   },
+   "color_grading": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "naturalistic_clean",
+     "bleached_warm",
+     "hyper_neon",
+     "teal_orange_epic",
+     "sodium_decay",
+     "cold_steel",
+     "bleach_bypass",
+     "classic_bw"
+    ]
+   },
+   "duration": {
+    "required": false,
+    "default": "15",
+    "values": []
+   },
+   "end_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "enhance_prompt": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "generate_audio": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "genre": {
+    "required": false,
+    "default": "auto",
+    "values": [
+     "auto",
+     "action",
+     "horror",
+     "comedy",
+     "noir",
+     "drama",
+     "epic"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "light_scheme": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "soft_cross",
+     "contre_jour",
+     "overhead_fall",
+     "window",
+     "practicals",
+     "silhouette"
+    ]
+   },
+   "multi_prompt": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "array"
+    ]
+   },
+   "multi_shot_mode": {
+    "required": false,
+    "default": "custom",
+    "values": [
+     "auto",
+     "custom"
+    ]
+   },
+   "multi_shots": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "prompt": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "prompt_language": {
+    "required": false,
+    "default": "zh",
+    "values": [
+     "en",
+     "zh"
+    ]
+   },
+   "resolution": {
+    "required": false,
+    "default": "720p",
+    "values": [
+     "480p",
+     "720p",
+     "1080p"
+    ]
+   },
+   "start_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "style_prompt": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "video_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "cinematic_studio_video_v2",
+  "name": "Cinematic Studio Video V2",
+  "category": "video",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "1:1",
+     "4:3",
+     "3:4",
+     "16:9",
+     "9:16"
+    ]
+   },
+   "batch_size": {
+    "required": false,
+    "default": "1",
+    "values": []
+   },
+   "cfg_scale": {
+    "required": false,
+    "default": "0.5",
+    "values": [
+     "number"
+    ]
+   },
+   "duration": {
+    "required": false,
+    "default": "5",
+    "values": []
+   },
+   "end_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "folder_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "genre": {
+    "required": false,
+    "default": "auto",
+    "values": [
+     "auto",
+     "action",
+     "horror",
+     "comedy",
+     "western",
+     "suspense",
+     "intimate",
+     "spectacle"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "kling_element_ids": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "array"
+    ]
+   },
+   "mode": {
+    "required": false,
+    "default": "std",
+    "values": [
+     "pro",
+     "std"
+    ]
+   },
+   "multi_prompt": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "array"
+    ]
+   },
+   "multi_shot_mode": {
+    "required": false,
+    "default": "custom",
+    "values": [
+     "auto",
+     "custom"
+    ]
+   },
+   "multi_shots": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "preset_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "sound": {
+    "required": false,
+    "default": "on",
+    "values": [
+     "on",
+     "off"
+    ]
+   },
+   "speedramp": {
+    "required": false,
+    "default": "auto",
+    "values": [
+     "auto",
+     "custom",
+     "linear",
+     "slowmo",
+     "speedup",
+     "impact"
+    ]
+   },
+   "start_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "gemini_omni",
+  "name": "Gemini Omni Flash",
+  "category": "video",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "16:9",
+     "9:16"
+    ]
+   },
+   "duration": {
+    "required": false,
+    "default": "8",
+    "values": [
+     "4",
+     "6",
+     "8",
+     "10"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "720p",
+    "values": [
+     "720p"
+    ]
+   },
+   "video_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "grok_video",
+  "name": "Grok Video",
+  "category": "video",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "16:9",
+     "9:16",
+     "1:1"
+    ]
+   },
+   "duration": {
+    "required": false,
+    "default": "5",
+    "values": []
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "start_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "grok_video_v15",
+  "name": "Grok Video 1.5",
+  "category": "video",
+  "flags": {
+   "duration": {
+    "required": false,
+    "default": "5",
+    "values": []
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "720p",
+    "values": [
+     "480p",
+     "720p"
+    ]
+   },
+   "start_image": {
+    "required": true,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "kling2_6",
+  "name": "Kling 2.6 Video",
+  "category": "video",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "16:9",
+     "9:16",
+     "1:1"
+    ]
+   },
+   "duration": {
+    "required": false,
+    "default": "5",
+    "values": [
+     "5",
+     "10"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "sound": {
+    "required": false,
+    "default": "true",
+    "values": []
+   },
+   "start_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "kling3_0",
+  "name": "Kling v3.0",
+  "category": "video",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "16:9",
+     "9:16",
+     "1:1"
+    ]
+   },
+   "duration": {
+    "required": false,
+    "default": "5",
+    "values": []
+   },
+   "end_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "mode": {
+    "required": false,
+    "default": "std",
+    "values": [
+     "std",
+     "pro",
+     "4k"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "sound": {
+    "required": false,
+    "default": "on",
+    "values": [
+     "on",
+     "off"
+    ]
+   },
+   "start_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "kling3_0_turbo",
+  "name": "Kling 3.0 Turbo",
+  "category": "video",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "16:9",
+     "9:16",
+     "1:1"
+    ]
+   },
+   "duration": {
+    "required": false,
+    "default": "5",
+    "values": []
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "720p",
+    "values": [
+     "720p",
+     "1080p"
+    ]
+   },
+   "start_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "marketing_studio_video",
+  "name": "Marketing Studio Video",
+  "category": "video",
+  "flags": {
+   "ad_reference_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "ad-reference UUID"
+    ]
+   },
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "auto",
+     "21:9",
+     "16:9",
+     "4:3",
+     "1:1",
+     "3:4",
+     "9:16"
+    ]
+   },
+   "avatar_ids": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "array"
+    ]
+   },
+   "avatars": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "array"
+    ]
+   },
+   "duration": {
+    "required": false,
+    "default": "15",
+    "values": []
+   },
+   "end_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "generate_audio": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "hook_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "hook UUID"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "mode": {
+    "required": false,
+    "default": "ugc",
+    "values": []
+   },
+   "product_ids": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "array"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "720p",
+    "values": [
+     "480p",
+     "720p",
+     "1080p"
+    ]
+   },
+   "setting_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "setting UUID"
+    ]
+   },
+   "specific_mode": {
+    "required": false,
+    "default": "default",
+    "values": [
+     "default",
+     "web_product",
+     "from_storyboard"
+    ]
+   },
+   "start_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "storyboard_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "storyboard UUID"
+    ]
+   },
+   "web_product_ids": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "array"
+    ]
+   },
+   "web_product_type": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "desktop",
+     "mobile"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "minimax_hailuo",
+  "name": "Minimax Hailuo",
+  "category": "video",
+  "flags": {
+   "duration": {
+    "required": false,
+    "default": "6",
+    "values": [
+     "6",
+     "10"
+    ]
+   },
+   "end_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "768",
+    "values": [
+     "512",
+     "768",
+     "1080"
+    ]
+   },
+   "start_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "variant": {
+    "required": false,
+    "default": "minimax-2.3",
+    "values": [
+     "minimax",
+     "minimax-fast",
+     "minimax-2.3",
+     "minimax-2.3-fast"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "seedance1_5",
+  "name": "Seedance 1.5 Pro",
+  "category": "video",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "auto",
+     "16:9",
+     "9:16",
+     "4:3",
+     "3:4",
+     "1:1",
+     "21:9"
+    ]
+   },
+   "duration": {
+    "required": false,
+    "default": "4",
+    "values": [
+     "4",
+     "8",
+     "12"
+    ]
+   },
+   "end_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "generate_audio": {
+    "required": false,
+    "default": "true",
+    "values": []
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "720p",
+    "values": [
+     "480p",
+     "720p",
+     "1080p"
+    ]
+   },
+   "start_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "seedance_2_0",
+  "name": "Seedance 2.0",
+  "category": "video",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "auto",
+     "16:9",
+     "9:16",
+     "4:3",
+     "3:4",
+     "1:1",
+     "21:9"
+    ]
+   },
+   "audio_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "bitrate_mode": {
+    "required": false,
+    "default": "standard",
+    "values": [
+     "standard",
+     "high"
+    ]
+   },
+   "duration": {
+    "required": false,
+    "default": "5",
+    "values": []
+   },
+   "end_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "generate_audio": {
+    "required": false,
+    "default": "true",
+    "values": []
+   },
+   "genre": {
+    "required": false,
+    "default": "auto",
+    "values": [
+     "auto",
+     "action",
+     "horror",
+     "comedy",
+     "noir",
+     "drama",
+     "epic"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "mode": {
+    "required": false,
+    "default": "std",
+    "values": [
+     "std",
+     "fast"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "720p",
+    "values": [
+     "480p",
+     "720p",
+     "1080p",
+     "4k"
+    ]
+   },
+   "start_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "video_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "seedance_2_0_mini",
+  "name": "Seedance 2.0 Mini",
+  "category": "video",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "auto",
+     "16:9",
+     "9:16",
+     "4:3",
+     "3:4",
+     "1:1",
+     "21:9"
+    ]
+   },
+   "audio_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "bitrate_mode": {
+    "required": false,
+    "default": "standard",
+    "values": [
+     "standard",
+     "high"
+    ]
+   },
+   "duration": {
+    "required": false,
+    "default": "5",
+    "values": []
+   },
+   "end_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "generate_audio": {
+    "required": false,
+    "default": "true",
+    "values": []
+   },
+   "genre": {
+    "required": false,
+    "default": "auto",
+    "values": [
+     "auto",
+     "action",
+     "horror",
+     "comedy",
+     "noir",
+     "drama",
+     "epic"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "720p",
+    "values": [
+     "480p",
+     "720p"
+    ]
+   },
+   "start_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "video_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "veo3",
+  "name": "Google Veo 3",
+  "category": "video",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "16:9",
+     "9:16"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "start_image": {
+    "required": true,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "variant": {
+    "required": false,
+    "default": "veo-3-fast",
+    "values": [
+     "veo-3-preview",
+     "veo-3-fast"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "veo3_1",
+  "name": "Google Veo 3.1",
+  "category": "video",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "16:9",
+     "9:16"
+    ]
+   },
+   "duration": {
+    "required": false,
+    "default": "8",
+    "values": [
+     "4",
+     "6",
+     "8"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "quality": {
+    "required": false,
+    "default": "basic",
+    "values": [
+     "basic",
+     "high",
+     "ultra"
+    ]
+   },
+   "start_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "variant": {
+    "required": false,
+    "default": "veo-3-1-fast",
+    "values": [
+     "veo-3-1-preview",
+     "veo-3-1-fast"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "veo3_1_lite",
+  "name": "Google Veo 3.1 Lite",
+  "category": "video",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "16:9",
+     "9:16",
+     "auto"
+    ]
+   },
+   "duration": {
+    "required": false,
+    "default": "8",
+    "values": [
+     "4",
+     "6",
+     "8"
+    ]
+   },
+   "end_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "generate_audio": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "start_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "video_background_remover",
+  "name": "Video Background Remover",
+  "category": "video",
+  "flags": {
+   "video_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "wan2_6",
+  "name": "Wan 2.6 Video",
+  "category": "video",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "16:9",
+     "9:16",
+     "1:1"
+    ]
+   },
+   "audio_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "duration": {
+    "required": false,
+    "default": "5",
+    "values": [
+     "5",
+     "10",
+     "15"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "quality": {
+    "required": false,
+    "default": "720p",
+    "values": [
+     "720p",
+     "1080p"
+    ]
+   },
+   "video_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "wan2_7",
+  "name": "Wan 2.7",
+  "category": "video",
+  "flags": {
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "16:9",
+     "9:16",
+     "1:1",
+     "4:3",
+     "3:4"
+    ]
+   },
+   "audio_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "duration": {
+    "required": false,
+    "default": "5",
+    "values": []
+   },
+   "end_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "resolution": {
+    "required": false,
+    "default": "720p",
+    "values": [
+     "720p",
+     "1080p"
+    ]
+   },
+   "start_image": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "video_explainer",
+  "name": "Explainer Video",
+  "category": "video",
+  "flags": {
+   "medias": {
+    "required": false,
+    "default": "[]",
+    "values": [
+     "JSON array via `@file`; up to 14 images/files"
+    ]
+   },
+   "aspect_ratio": {
+    "required": false,
+    "default": "16:9",
+    "values": [
+     "16:9",
+     "9:16"
+    ]
+   },
+   "duration": {
+    "required": true,
+    "default": "\u2014",
+    "values": [
+     "20\u2013600",
+     "multiple of 10"
+    ]
+   },
+   "preset_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID from `higgsfield preset list video-explainer"
+    ]
+   },
+   "voice_type": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "preset",
+     "element"
+    ]
+   },
+   "voice_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "voice ID from `higgsfield voices list"
+    ]
+   },
+   "folder_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "explainer_video",
+  "name": "Explainer Video Assembler",
+  "category": "video",
+  "flags": {
+   "width": {
+    "required": true,
+    "default": "\u2014",
+    "values": [
+     "even integer greater than 1"
+    ]
+   },
+   "height": {
+    "required": true,
+    "default": "\u2014",
+    "values": [
+     "even integer greater than 1"
+    ]
+   },
+   "items": {
+    "required": true,
+    "default": "\u2014",
+    "values": [
+     "JSON array via `@file`; at least 2 items"
+    ]
+   },
+   "subtitles": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "JSON object; font: `patrick",
+     "caveat",
+     "marker",
+     "anton"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "3d_rigging",
+  "name": "3D Rigging",
+  "category": "3d",
+  "flags": {
+   "animation_action_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "enable_animation": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "enable_safety_checker": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "folder_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "height_meters": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "number"
+    ]
+   },
+   "model_url": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "image_to_3d",
+  "name": "Image to 3D",
+  "category": "3d",
+  "flags": {
+   "animation_action_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "enable_animation": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "enable_pbr": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "enable_rigging": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "enable_safety_checker": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "folder_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "image_references": {
+    "required": true,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "pose_mode": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "a-pose",
+     "t-pose"
+    ]
+   },
+   "rigging_height_meters": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "number"
+    ]
+   },
+   "seed": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "should_remesh": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "should_texture": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "symmetry_mode": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "off",
+     "auto",
+     "on"
+    ]
+   },
+   "target_polycount": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "texture_image_url": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "texture_prompt": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "topology": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "quad",
+     "triangle"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "multi_image_to_3d",
+  "name": "Multi-Image to 3D",
+  "category": "3d",
+  "flags": {
+   "animation_action_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "enable_animation": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "enable_pbr": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "enable_rigging": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "enable_safety_checker": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "folder_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "image_references": {
+    "required": true,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "pose_mode": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "a-pose",
+     "t-pose"
+    ]
+   },
+   "rigging_height_meters": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "number"
+    ]
+   },
+   "seed": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "should_remesh": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "should_texture": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "symmetry_mode": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "off",
+     "auto",
+     "on"
+    ]
+   },
+   "target_polycount": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "texture_image_url": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "texture_prompt": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "topology": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "quad",
+     "triangle"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "sam_3_3d",
+  "name": "3D Objects",
+  "category": "3d",
+  "flags": {
+   "detection_threshold": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "number"
+    ]
+   },
+   "export_textured_glb": {
+    "required": false,
+    "default": "true",
+    "values": []
+   },
+   "folder_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "image_references": {
+    "required": true,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "prompt": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "seed": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "tripo_3d",
+  "name": "Text to 3D",
+  "category": "3d",
+  "flags": {
+   "auto_size": {
+    "required": false,
+    "default": "false",
+    "values": []
+   },
+   "face_limit": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "geometry_quality": {
+    "required": false,
+    "default": "standard",
+    "values": [
+     "standard",
+     "detailed"
+    ]
+   },
+   "negative_prompt": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "pbr": {
+    "required": false,
+    "default": "true",
+    "values": []
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "texture": {
+    "required": false,
+    "default": "true",
+    "values": []
+   },
+   "texture_quality": {
+    "required": false,
+    "default": "standard",
+    "values": [
+     "standard",
+     "detailed"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "inworld_text_to_speech",
+  "name": "Inworld Text to Speech",
+  "category": "audio",
+  "flags": {
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "voice": {
+    "required": true,
+    "default": "\u2014",
+    "values": [
+     "113 built-in voices \u2014 run `higgsfield model get inworld_text_to_speech` for the list"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "mirelo_text_to_audio",
+  "name": "Mirelo Text to Audio",
+  "category": "audio",
+  "flags": {
+   "duration": {
+    "required": true,
+    "default": "\u2014",
+    "values": [
+     "number"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "seed_audio",
+  "name": "Seed Audio 1.0",
+  "category": "audio",
+  "flags": {
+   "audio_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "format": {
+    "required": false,
+    "default": "wav",
+    "values": [
+     "wav",
+     "mp3",
+     "pcm",
+     "ogg_opus"
+    ]
+   },
+   "image_references": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "UUID or path"
+    ]
+   },
+   "loudness_rate": {
+    "required": false,
+    "default": "0",
+    "values": []
+   },
+   "pitch_rate": {
+    "required": false,
+    "default": "0",
+    "values": []
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "sample_rate": {
+    "required": false,
+    "default": "24000",
+    "values": [
+     "8000",
+     "16000",
+     "24000",
+     "32000",
+     "44100",
+     "48000"
+    ]
+   },
+   "speech_rate": {
+    "required": false,
+    "default": "0",
+    "values": []
+   },
+   "voice_id": {
+    "required": false,
+    "default": "\u2014",
+    "values": []
+   },
+   "voice_type": {
+    "required": false,
+    "default": "\u2014",
+    "values": [
+     "preset",
+     "element"
+    ]
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "sonilo_music",
+  "name": "Sonilo Music",
+  "category": "audio",
+  "flags": {
+   "duration": {
+    "required": true,
+    "default": "\u2014",
+    "values": [
+     "number"
+    ]
+   },
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   }
+  },
+  "description": ""
+ },
+ {
+  "id": "text2speech_v2",
+  "name": "Text to Speech",
+  "category": "audio",
+  "flags": {
+   "prompt": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "variant": {
+    "required": true,
+    "default": "\u2014",
+    "values": [
+     "elevenlabs",
+     "minimax",
+     "seed_speech",
+     "vibe_voice",
+     "cozy_voice"
+    ]
+   },
+   "voice_id": {
+    "required": true,
+    "default": "\u2014",
+    "values": []
+   },
+   "voice_type": {
+    "required": true,
+    "default": "\u2014",
+    "values": [
+     "preset",
+     "element"
+    ]
+   }
+  },
+  "description": ""
+ }
+]

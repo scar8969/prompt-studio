@@ -142,7 +142,7 @@ def register_models(req: Request) -> Tuple[Dict[str, Any], int]:
 @router.get("/api/models")
 def list_models(req: Request) -> Tuple[Dict[str, Any], int]:
     modality = req.q("modality")
-    if modality and modality not in ("image", "video", "chat"):
+    if modality and modality not in ("image", "video", "3d", "audio", "chat"):
         raise ApiError("invalid_field", "Query 'modality' must be image, video or chat.",
                        details={"field": "modality"})
     capability = req.q("capability")

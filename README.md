@@ -106,6 +106,10 @@ POST   /api/connections/{id}/test
 POST   /api/connections/{id}/rotate-key
 GET    /api/connections/{id}/models      POST   /api/connections/{id}/models
 
+GET    /api/catalog                      every model Higgsfield offers (58)
+POST   /api/catalog/seed                 register the configured ones
+GET    /api/cron/tick                    the queue driver (guarded by CRON_SECRET)
+
 GET    /api/models[?modality=&capability=]
 GET    /api/models/{pk}                  PATCH  /api/models/{pk}
 DELETE /api/models/{pk}
@@ -151,6 +155,29 @@ The deployment shape is tested too, not just described: `tests/test_deploy.py` a
 that every function in `api/` is covered by a `vercel.json` pattern, that the cron entry
 points at a route that exists, and that the deny rules for `/app/*`, `/data/*`,
 `/uploads/*` and `.env*` are present.
+
+## The model catalogue
+
+`app/catalog.py` lists **every model Higgsfield offers** — 24 image, 24 video, 5 3D and
+5 audio — with the job-set id their CLI actually accepts (`nano_banana_2`,
+`gpt_image_2_5`, `seedance_2_5`), the parameters each documents, and the capabilities
+derived from those parameters.
+
+It is generated, not typed:
+
+```bash
+python scripts/gen_catalog.py          # refresh from Higgsfield's published model list
+python scripts/gen_env_example.py      # ...and rebuild the per-model env section
+python -m app.cli catalog              # what is configured, and what is missing
+```
+
+`tests/test_catalog.py` runs both `--check` modes, so a model added upstream fails the
+suite instead of quietly going missing.
+
+Higgsfield publishes no REST API key; their supported programmatic path is the official
+CLI (`higgsfield auth login`). The catalogue therefore records the real job-set id rather
+than inventing an endpoint. A model with no credential is `configured: false`, names the
+variable that would fix it, and is hidden from the studios.
 
 ## Configuration
 

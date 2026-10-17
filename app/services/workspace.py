@@ -144,7 +144,7 @@ def create_preset(payload: Dict[str, Any]) -> Dict[str, Any]:
     if not name:
         raise ApiError("missing_field", "'name' is required.", details={"field": "name"})
     modality = str(payload.get("modality") or "image").lower()
-    if modality not in ("image", "video", "chat"):
+    if modality not in ("image", "video", "3d", "audio", "chat"):
         raise ApiError("invalid_field", "'modality' must be image, video or chat.",
                        details={"field": "modality"})
     configuration = payload.get("configuration")
@@ -172,7 +172,7 @@ def update_preset(preset_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
             params.append(str(payload.get(field) or "")[:limit])
     if "modality" in payload:
         modality = str(payload["modality"]).lower()
-        if modality not in ("image", "video", "chat"):
+        if modality not in ("image", "video", "3d", "audio", "chat"):
             raise ApiError("invalid_field", "'modality' must be image, video or chat.",
                            details={"field": "modality"})
         sets.append("modality=?"); params.append(modality)

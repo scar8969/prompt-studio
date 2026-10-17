@@ -21,6 +21,14 @@ CAPABILITIES = {
     "video.extend": "Continue an existing clip.",
     "video.transform": "Restyle or transform an existing clip.",
     "video.async": "Runs as a provider-side job that is polled for completion.",
+    "video.audio": "Produce audio alongside the video (native sound or lip-sync).",
+    # 3d — Higgsfield generates 3D assets, so they are first-class, not a side feature
+    "3d.generate": "Generate a 3D asset (mesh) from text or images.",
+    "image.to_3d": "Turn a supplied image into a 3D asset.",
+    # audio
+    "audio.generate": "Generate audio from text.",
+    "audio.speech": "Text to speech.",
+    "audio.music": "Generate music or sound effects.",
     # chat
     "chat.complete": "Conversational completion, used by the assistant.",
 }
@@ -29,7 +37,9 @@ MODALITY_BY_CAPABILITY = {
     "image": ("image.generate", "image.edit", "image.reference", "image.variations",
               "image.upscale"),
     "video": ("video.generate", "video.image_to_video", "video.extend",
-              "video.transform", "video.async"),
+              "video.transform", "video.async", "video.audio"),
+    "3d": ("3d.generate", "image.to_3d"),
+    "audio": ("audio.generate", "audio.speech", "audio.music"),
     "chat": ("chat.complete",),
 }
 
@@ -43,6 +53,10 @@ IMPLIED = {
     "video.extend": ("video.generate",),
     "video.transform": ("video.generate",),
     "video.async": ("video.generate",),
+    "video.audio": ("video.generate",),
+    "image.to_3d": ("3d.generate",),
+    "audio.speech": ("audio.generate",),
+    "audio.music": ("audio.generate",),
 }
 
 #: Modality implied by a capability with no explicit modality.
@@ -50,7 +64,9 @@ MODALITY_OF = {
     "image.generate": "image", "image.edit": "image", "image.reference": "image",
     "image.variations": "image", "image.upscale": "image",
     "video.generate": "video", "video.image_to_video": "video", "video.extend": "video",
-    "video.transform": "video", "video.async": "video",
+    "video.transform": "video", "video.async": "video", "video.audio": "video",
+    "3d.generate": "3d", "image.to_3d": "3d",
+    "audio.generate": "audio", "audio.speech": "audio", "audio.music": "audio",
     "chat.complete": "chat",
 }
 
