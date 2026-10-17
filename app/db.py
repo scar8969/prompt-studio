@@ -107,15 +107,21 @@ def _sql(query: str) -> str:
 
 
 def _execute(cursor, query: str, params: Iterable[Any] = ()):
-    if IS_POSTGRES:
-        import psycopg2.extras
+    """Run one statement and normalise the result to a list of dicts.
 
+    psycopg2 returns plain tuples unless the cursor was built with a row factory, and
+    `dict(tuple)` raises `ValueError: dictionary update sequence element #0 has length
+    N; 2 is required` — which surfaced as a 500 on every endpoint that read a row. The
+    columns come from `cursor.description`, so the mapping is explicit rather than
+    inferred from the row's shape. SQLite already produces mappings, so its branch is
+    unchanged.
+    """
+    if IS_POSTGRES:
         cursor.execute(_sql(query), tuple(params))
-        if cursor.description:
-            return [dict(row) for row in cursor.fetchall()]
-        # Asking for a dict cursor up front is not needed: `.description` is None for
-        # a statement that returns no rows, and that is exactly the distinction used.
-        return []
+        if not cursor.description:
+            return []
+        columns = [column[0] for column in cursor.description]
+        return [dict(zip(columns, values)) for values in cursor.fetchall()]
     cursor.execute(query, tuple(params))
     if cursor.description:
         return [dict(r) for r in cursor.fetchall()]
@@ -123,10 +129,26 @@ def _execute(cursor, query: str, params: Iterable[Any] = ()):
 
 
 def rows(query: str, params: Iterable[Any] = ()) -> List[Dict[str, Any]]:
+    """Run a SELECT and return dicts.
+
+    **Reads commit too.** psycopg2 opens an implicit transaction on the first statement
+    and holds it until commit or rollback; a connection left `idle in transaction` keeps
+    its locks, so a later `DROP TABLE` (or any DDL) blocks behind it forever. On a
+    serverless platform that is also how a connection pool runs dry. Committing after a
+    read is harmless — there is nothing to persist — and it releases the snapshot.
+    """
     conn = db()
     cursor = conn.cursor()
     try:
-        return _execute(cursor, query, params)
+        result = _execute(cursor, query, params)
+        conn.commit()
+        return result
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:                                      # noqa: BLE001
+            pass
+        raise
     finally:
         cursor.close()
 
@@ -149,6 +171,15 @@ def execute(query: str, params: Iterable[Any] = ()) -> None:
     try:
         cursor.execute(_sql(query), tuple(params))
         conn.commit()
+    except Exception:
+        # Without this a failed statement leaves the connection in a broken transaction
+        # and every later statement on the thread fails with "current transaction is
+        # aborted" — one bad request would poison the whole connection.
+        try:
+            conn.rollback()
+        except Exception:                                      # noqa: BLE001
+            pass
+        raise
     finally:
         cursor.close()
 
@@ -170,6 +201,12 @@ def insert_returning_id(query: str, params: Iterable[Any] = ()) -> Any:
             new_id = cursor.lastrowid
         conn.commit()
         return new_id
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:                                      # noqa: BLE001
+            pass
+        raise
     finally:
         cursor.close()
 

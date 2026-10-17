@@ -35,16 +35,49 @@ HEADER = """\
 # -----------------------------------------------------------------------------
 # 1. REQUIRED — encrypts stored provider credentials
 # -----------------------------------------------------------------------------
-# A Fernet key (44 chars) or any passphrase; a passphrase is stretched with PBKDF2.
-# Generate one with:  python -m app.cli init-key
-#
-# Changing this after credentials are stored makes them unreadable, because each
-# one is encrypted with this key. Set it once and keep it.
-APP_ENCRYPTION_KEY=
-
-
+# 2. REQUIRED ON VERCEL — Supabase (database + file storage)
 # -----------------------------------------------------------------------------
-# 2. REQUIRED ON VERCEL — durable storage
+# A serverless filesystem belongs to one invocation and is wiped between them, so
+# both the data and the files need somewhere durable. One Supabase project gives
+# you both: Postgres for the rows, Storage for the images and clips.
+#
+# Without these the app still runs, but /api/health reports "degraded" and names
+# exactly what is missing.
+#
+# Where each value comes from — Supabase dashboard → Project Settings:
+#
+#   DATABASE_URL
+#       Database → Connection string → URI. Use the **pooler** host
+#       (…pooler.supabase.com:6543) for a serverless deployment: it survives the
+#       many short-lived connections a function makes. Append ?sslmode=require.
+#   SUPABASE_URL
+#       API → Project URL   (https://<ref>.supabase.co)
+#   SUPABASE_S3_ACCESS_KEY_ID / SUPABASE_S3_SECRET_ACCESS_KEY
+#       Storage → S3 access keys → create. The secret is shown once.
+#       These are what let the app write files without carrying the service_role
+#       key around.
+#   SUPABASE_STORAGE_BUCKET
+#       Storage → the bucket you created (e.g. media)
+#   SUPABASE_REGION
+#       Project Settings → General → Region (e.g. ap-south-1). It is part of the
+#       storage signature, so it must be the project's real region.
+DATABASE_URL=
+SUPABASE_URL=
+SUPABASE_S3_ACCESS_KEY_ID=
+SUPABASE_S3_SECRET_ACCESS_KEY=
+SUPABASE_STORAGE_BUCKET=
+SUPABASE_REGION=
+#
+# Optional: set to 1 if the bucket is public, so asset rows can carry a shareable
+# URL. Left unset, a private bucket works too — files are served through
+# /api/assets/{id}/raw either way.
+# SUPABASE_STORAGE_PUBLIC=0
+#
+# Prefer Vercel Blob for files and Supabase only for the database? Set this
+# instead of the SUPABASE_S3_* values. Supabase Storage wins when both are set.
+# BLOB_READ_WRITE_TOKEN=
+
+
 # -----------------------------------------------------------------------------
 # A serverless filesystem belongs to one invocation and is wiped between them, so
 # both of these are required for data to survive. Without them the app still runs,

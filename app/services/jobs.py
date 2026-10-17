@@ -48,7 +48,19 @@ _started = False
 # State machine
 # ---------------------------------------------------------------------------
 
+#: A job in one of these states will never be picked up again by the runner.
+TERMINAL_STATUSES = ("succeeded", "failed", "cancelled")
+
+
 def _transition(job_id: str, to_status: str, *, detail: str = "", **fields: Any) -> None:
+    """Move a job to `to_status`, recording an event.
+
+    Reaching a terminal state also **clears the lease**. That is not bookkeeping: the
+    runner treats `running` with an expired lease as an abandoned job and runs it again,
+    so a finished job that kept its lease could be executed a second time by the next
+    worker — producing duplicate outputs. Releasing here means every terminal path is
+    covered, rather than relying on each caller to remember.
+    """
     current = store.row("SELECT status FROM generation_jobs WHERE id=?", (job_id,))
     from_status = current["status"] if current else ""
     sets = ["status=?", "updated_at=?"]
@@ -56,6 +68,9 @@ def _transition(job_id: str, to_status: str, *, detail: str = "", **fields: Any)
     for column, value in fields.items():
         sets.append(f"{column}=?")
         params.append(value)
+    if to_status in TERMINAL_STATUSES:
+        sets.append("lease_token=''")
+        sets.append("lease_until=NULL")
     params.append(job_id)
     store.execute(f"UPDATE generation_jobs SET {', '.join(sets)} WHERE id=?", params)
     store.log_event(job_id, from_status, to_status, detail)

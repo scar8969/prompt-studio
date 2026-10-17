@@ -52,34 +52,89 @@ def _iso(moment: datetime) -> str:
 
 
 def claim_next() -> Optional[Dict[str, Any]]:
-    """Claim one runnable job, or return None.
+    """Claim one runnable job, or return None. Never hands the same job to two callers.
 
     Runnable means `queued`, or `running` with an expired lease — the latter is a job
-    whose worker died, and it is picked up again rather than being lost.
+    whose worker died, and it is picked up again rather than lost.
+
+    **Why this is not an UPDATE-then-SELECT.** The earlier version ran
+    `UPDATE ... WHERE id = (SELECT ... LIMIT 1)` and then read back by lease token. Two
+    workers could both match the same row before either committed, both stamp their own
+    token, and both run the job — which surfaced as a job with four outputs instead of
+    two, intermittently. The claim now *returns* the row it took:
+
+    * **Postgres** — `SELECT ... FOR UPDATE SKIP LOCKED` inside one transaction. A second
+      worker skips a row another transaction has locked instead of waiting for it, so
+      concurrent claims are serialised by the database rather than by luck.
+    * **SQLite** — the write itself is serialised (one writer at a time), so an
+      `UPDATE ... WHERE rowid = (SELECT ...)` followed by reading the row back by token
+      inside a single transaction is sufficient.
     """
     now = datetime.now(timezone.utc)
     lease = _iso(now + timedelta(seconds=LEASE_SECONDS))
-
-    # A single statement claims atomically on both engines: the UPDATE only matches a
-    # row that is still claimable, and the caller then reads back the row it stamped.
     token = store.new_id("lease_")
-    store.execute(
-        "UPDATE generation_jobs SET lease_token=?, lease_until=?, updated_at=? "
-        "WHERE id = ("
-        "  SELECT id FROM generation_jobs "
-        "  WHERE status='queued' OR (status='running' AND lease_until IS NOT NULL AND lease_until < ?) "
-        "  ORDER BY created_at LIMIT 1"
-        ")",
-        (token, lease, store.utcnow(), _iso(now)),
-    )
+    cutoff = _iso(now)
 
-    claimed = store.row("SELECT * FROM generation_jobs WHERE lease_token=?", (token,))
+    if database.dialect() == "postgres":
+        conn = database.db()
+        cursor = conn.cursor()
+        try:
+            # One statement, and the *subquery* takes the row lock. `FOR UPDATE SKIP
+            # LOCKED` inside the subquery is the part that matters: the candidate row is
+            # locked while it is being chosen, so a second claimer skips it instead of
+            # selecting the same id. Without the lock, READ COMMITTED lets both
+            # transactions select the same row and both update it — measured: a job ran
+            # twelve times with four workers.
+            #
+            # The `(...)` around the two status conditions is required. `a='x' OR b='y'
+            # AND c` parses as `a='x' OR (b='y' AND c)`, so a `running` job with a live
+            # lease could still match — one of the ways this handed out the same job twice.
+            cursor.execute(
+                "UPDATE generation_jobs SET lease_token=%s, lease_until=%s, updated_at=%s, "
+                "status='running' "
+                "WHERE id = ("
+                "  SELECT id FROM generation_jobs "
+                "  WHERE (status='queued' "
+                "     OR (status='running' AND lease_until IS NOT NULL AND lease_until < %s)) "
+                "  ORDER BY created_at "
+                "  LIMIT 1 "
+                "  FOR UPDATE SKIP LOCKED"
+                ") "
+                "RETURNING *",
+                (token, lease, store.utcnow(), cutoff))
+            rows = cursor.fetchall()
+            conn.commit()
+            if not rows:
+                return None
+            columns = [column[0] for column in cursor.description]
+            return dict(zip(columns, rows[0]))
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cursor.close()
+
+    # SQLite: one writer at a time, so this sequence cannot interleave.
+    conn = database.db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE generation_jobs SET lease_token=?, lease_until=?, updated_at=?, "
+            "status='running' "
+            "WHERE rowid = ("
+            "  SELECT rowid FROM generation_jobs "
+            "  WHERE (status='queued' "
+            "     OR (status='running' AND lease_until IS NOT NULL AND lease_until < ?)) "
+            "  ORDER BY created_at LIMIT 1"
+            ")",
+            (token, lease, store.utcnow(), cutoff))
+        claimed = cursor.rowcount
+        conn.commit()
+    finally:
+        cursor.close()
     if not claimed:
         return None
-    # A row can be stamped by the UPDATE above only if it was claimable; the token
-    # round trip confirms it was this claim that won.
-    return claimed
-
+    return store.row("SELECT * FROM generation_jobs WHERE lease_token=?", (token,))
 
 def release(job_id: str) -> None:
     store.execute(

@@ -47,7 +47,19 @@ def health(req: Request) -> Tuple[Dict[str, Any], int]:
             problems.append("DATABASE_URL is not set: the database is a local file that "
                             "will not survive this invocation.")
         if storage.backend() == "disk":
-            problems.append("BLOB_READ_WRITE_TOKEN is not set: stored files will be lost.")
+            # Name the Supabase variables first, because that is the documented path;
+            # Blob is the fallback and mentioning it alone sent people the wrong way.
+            problems.append(
+                "No durable file storage: set SUPABASE_STORAGE_BUCKET with "
+                "SUPABASE_S3_ACCESS_KEY_ID and SUPABASE_S3_SECRET_ACCESS_KEY (or "
+                "BLOB_READ_WRITE_TOKEN). Without one, uploaded and generated files are "
+                "lost between invocations.")
+        elif storage.backend() == "supabase":
+            described = storage.describe()
+            if not described.get("supabase_region"):
+                problems.append(
+                    "SUPABASE_REGION is not set. Storage requests are signed with a "
+                    "region, so a wrong one is rejected as a bad key.")
     if IS_PRODUCTION and not os.getenv("CRON_SECRET", "").strip():
         problems.append("CRON_SECRET is not set: the job tick will refuse to run.")
     from ..config import ensure_dirs
@@ -60,6 +72,7 @@ def health(req: Request) -> Tuple[Dict[str, Any], int]:
         "env": ENV,
         "serverless": IS_SERVERLESS,
         "storage": storage.backend(),
+        "storage_detail": storage.describe(),
         "database": db_health,
         "problems": problems,
         "adapters": adapter_names(),

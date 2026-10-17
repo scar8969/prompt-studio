@@ -23,13 +23,51 @@ os.environ.setdefault("APP_ENCRYPTION_KEY", "test-key-not-a-secret")
 os.environ.setdefault("APP_ENV", "development")
 os.environ.setdefault("JOB_WORKERS", "2")
 
+#: Point this at a scratch Postgres to run the same suite on the production engine:
+#:     TEST_DATABASE_URL=postgresql://postgres@127.0.0.1:5433/promptstudio pytest
+#: It is wiped at session start, so it must be a throwaway database. This is how the
+#: psycopg2 row-mapping bug was caught — SQLite passed while every Postgres endpoint
+#: returned 500.
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "").strip()
+if TEST_DATABASE_URL:
+    os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+
 
 @pytest.fixture(scope="session", autouse=True)
 def _schema():
     from app import store
 
+    if TEST_DATABASE_URL:
+        _wipe_postgres()
     store.init()
     yield
+
+
+def _wipe_postgres() -> None:
+    """Drop every table in the scratch database so each session starts empty.
+
+    Without this, a previous run's rows are still there, and the duplicate guards and
+    "the list is empty" assertions fail for a reason that has nothing to do with the code.
+    """
+    from app import db
+
+    conn = db.db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname='public'")
+    tables = [row[0] for row in cursor.fetchall()]
+    if tables:
+        names = ", ".join(f'"{table}"' for table in tables)
+        cursor.execute(f"DROP TABLE IF EXISTS {names} CASCADE")
+        conn.commit()
+    cursor.close()
+
+
+@pytest.fixture(scope="session")
+def dialect():
+    """Which engine this run is using — so a test can assert dialect-specific behaviour."""
+    from app import db
+
+    return db.dialect()
 
 
 @pytest.fixture(scope="session")
