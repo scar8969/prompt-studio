@@ -110,75 +110,38 @@ def main() -> int:
             break
     check("no model invents a key", all("api_key" not in m for m in models))
 
-    # ---- 4. a full generation through the demo provider
-    print("\n4. generation")
-    code, created, _ = call(base, "POST", "/api/connections", {
-        "name": f"Sanity demo {__import__('uuid').uuid4().hex[:8]}",
-        "kind": "mock", "base_url": "mock://offline"})
-    # A repeat run against a server that already has the demo connection is not a
-    # failure: the duplicate guard is correct, and the existing connection is usable.
-    if code == 409:
-        _, existing, _ = call(base, "GET", "/api/connections")
-        rows = (existing or {}).get("data") or []
-        demo = [c for c in rows if c.get("base_url") == "mock://offline"]
-        created = {"data": demo[0]} if demo else None
-        code = 201 if demo else code
-    check("a demo connection is available", code == 201, f"got {code}: {created}")
-    connection = (created or {}).get("data") or {}
-    check("the connection has an id", bool(connection.get("id")))
+    # ---- 4. the model credential path
+    print()
+    print("4. configured models")
+    code, providers, _ = call(base, "GET", "/api/providers")
+    check("providers endpoint responds", code == 200, f"got {code}")
+    code, listed, _ = call(base, "GET", "/api/models")
+    check("models endpoint responds", code == 200, f"got {code}")
+    configured = (listed or {}).get("data") or []
 
-    if connection.get("id"):
-        code, registered, _ = call(
-            base, "POST", f"/api/connections/{connection['id']}/models",
-            # The mock adapter only serves its own two ids; using a made-up one makes
-            # the adapter (correctly) refuse the job, which proves nothing about the
-            # queue. Register the id the demo provider actually offers.
-            {"models": [{"model_id": "demo-image-1",
-                         "capabilities": ["image.generate"]}]})
-        check("a model registers", code == 201, f"got {code}: {registered}")
+    # A model exists only because the environment configured it. Nothing configured is a
+    # legitimate state, not a failure: the deployment simply cannot generate yet.
+    if not configured:
+        print("  NOTE  no models are configured here — set <PREFIX>_API_KEY, "
+              "<PREFIX>_MODEL and <PREFIX>_API_URL to enable one")
+    for model in configured:
+        check(f"{model['display_name']} has an endpoint", bool(model.get("api_url")),
+              "no api_url recorded")
+        # The built-in demo provider is not a catalogue model, so it has no env prefix
+        # by design; every real model must name the variables that configure it.
+        if model.get("provider") != "Demo" and model["provider"] != "mock":
+            check(f"{model['display_name']} names its env prefix",
+                  bool(model.get("env_prefix")), "no env_prefix")
+    check("no response exposes a credential", "api_key" not in str(listed).lower())
 
-        code, listed, _ = call(base, "GET", "/api/models?modality=image")
-        image_models = (listed or {}).get("data") or []
-        check("the model is listed", bool(image_models), f"{len(image_models)} image models")
-
-        if image_models:
-            model_pk = image_models[0]["id"]
-            prompt = f"sanity lighthouse {__import__('uuid').uuid4().hex[:6]}"
-            code, job, _ = call(base, "POST", "/api/generations/images",
-                                {"model_pk": model_pk, "prompt": prompt})
-            check("a job is accepted", code in (201, 202), f"got {code}: {job}")
-            job_data = (job or {}).get("data") or {}
-            job_id = job_data.get("id")
-            check("the job has an id", bool(job_id))
-            check("the job reaches a terminal state",
-                  job_data.get("status") in ("queued", "running", "succeeded"),
-                  str(job_data.get("status")))
-
-            # Poll briefly: a local server runs it in a worker thread.
-            import time
-            status = job_data.get("status")
-            for _ in range(40):
-                if status in ("succeeded", "failed", "cancelled"):
-                    break
-                time.sleep(0.25)
-                _, one, _ = call(base, "GET", f"/api/jobs/{job_id}")
-                status = ((one or {}).get("data") or {}).get("status", status)
-            check("the job finishes", status == "succeeded", f"ended {status}")
-
-            # ---- 5. the output is real, fetchable bytes
-            print("\n5. output")
-            code, assets, _ = call(base, "GET", "/api/assets")
-            rows = (assets or {}).get("assets") or []
-            check("the output is recorded as an asset", bool(rows), f"{len(rows)} assets")
-            generated = [a for a in rows if a.get("source") == "generated"]
-            if generated:
-                asset_id = generated[0]["id"]
-                code, _, raw = call(base, "GET", f"/api/assets/{asset_id}/raw")
-                check("the asset serves bytes", code == 200 and len(raw) > 500,
-                      f"{code}, {len(raw)} bytes")
-                check("the bytes are a real image",
-                      raw[:8] == b"\x89PNG\r\n\x1a\n" or raw[:3] == b"\xff\xd8\xff"
-                      or raw[:4] == b"RIFF", raw[:8].hex())
+    # ---- 5. the removed BYOK endpoints stay removed
+    print()
+    print("5. BYOK is gone")
+    for method, path in (("GET", "/api/connections"), ("POST", "/api/connections"),
+                         ("DELETE", "/api/connections/x")):
+        check(f"{method} {path} is not a route",
+              call(base, method, path, {} if method != "DELETE" else None)[0]
+              in (404, 405))
 
     # ---- 6. the error vocabulary (a bad request is answered, not fatal)
     print("\n6. errors are answered, not raised")
