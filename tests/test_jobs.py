@@ -50,7 +50,7 @@ class TestStateMachine:
         code, body = _submit(client, mock_connection["image_pk"], "store me",
                              params={"count": 2})
         final = wait_for_job(body["data"]["id"])
-        assert len(final["outputs"]) == 2
+        assert len(final.get("outputs", [])) == 2
         for output in final["outputs"]:
             assert output["asset_id"]
             code, blob = client.get(f"/api/assets/{output['asset_id']}/raw")

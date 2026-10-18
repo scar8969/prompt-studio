@@ -60,8 +60,8 @@
     </button>
 
     <div class="group">Setup</div>
-    <button class="navitem" data-view="connections">
-      <span class="ico" aria-hidden="true">⚿</span><span class="lbl">Connections</span>
+    <button class="navitem" data-view="models">
+      <span class="ico" aria-hidden="true">⬡</span><span class="lbl">Models</span>
     </button>
     <button class="navitem" data-view="usage">
       <span class="ico" aria-hidden="true">◔</span><span class="lbl">Usage</span>
@@ -262,69 +262,34 @@
       <div class="card flush"><div class="rows" id="charactersList"></div></div>
     </section>
 
-    <!-- =============================================================== connections -->
-    <section class="view" id="view-connections" hidden>
-      <div class="view-head">
+    <!-- =================================================================== models -->
+    <section class="view" id="view-models" hidden>
+      <header class="page-head">
         <div>
-          <h1>Connections</h1>
-          <p>Your own API URLs and keys. Keys are encrypted at rest and never sent back to this page.</p>
+          <h1>Models</h1>
+          <p class="sub">Configured in this deployment&rsquo;s environment. Read-only here &mdash;
+            a key, a model name and an API URL are set as environment variables, never typed
+            into this page.</p>
         </div>
-      </div>
+        <div class="right">
+          <button class="btn sm ghost" id="modelRefresh">Refresh</button>
+          <button class="btn sm" id="modelSync">Re-read environment</button>
+        </div>
+      </header>
 
-      <div class="split">
-        <div class="card">
-          <header><h2>Add a connection</h2></header>
-          <div class="body">
-            <label class="field">
-              <span class="lbl">Name</span>
-              <input type="text" id="connName" placeholder="My gateway">
-            </label>
-            <label class="field">
-              <span class="lbl">Kind</span>
-              <select id="connKind">
-                <option value="openai-compatible">OpenAI-compatible</option>
-                <option value="mock">Offline demo (no network)</option>
-              </select>
-            </label>
-            <label class="field" id="connBaseField">
-              <span class="lbl">API base URL</span>
-              <input type="url" id="connBase" placeholder="https://your-gateway/v1">
-              <span class="hint">Private, loopback and metadata addresses are refused.</span>
-            </label>
-            <label class="field" id="connKeyField">
-              <span class="lbl">API key</span>
-              <input type="password" id="connKey" autocomplete="off" placeholder="sk-…">
-              <span class="hint">Encrypted before storage. Never returned to the browser.</span>
-            </label>
-            <div class="inline mt3">
-              <button class="btn primary" id="connAdd">Add connection</button>
-            </div>
-            <div id="connMsg" class="mt3"></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <header><h2>Your connections</h2><div class="right"><button class="btn sm ghost" id="connRefresh">Refresh</button></div></header>
-          <div class="body" id="connList"></div>
-        </div>
-      </div>
-
-      <div class="card mt4" id="modelBox" hidden>
-        <header>
-          <h2>Models on <span id="modelConnName" style="text-transform:none;color:var(--ink)">—</span></h2>
-          <div class="right"><button class="btn sm" id="fetchModels">Ask the provider</button></div>
-        </header>
-        <div class="body">
-          <div class="tiny muted" id="fetchMsg" style="margin-bottom:10px"></div>
-          <div class="rows" id="providerModels"></div>
-          <div class="divider"></div>
-          <h2 style="font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 10px">Registered</h2>
-          <div class="rows" id="registeredModels"></div>
-        </div>
+      <div class="panel">
+        <p class="hint">
+          To add a model: set <code>&lt;PREFIX&gt;_API_KEY</code>,
+          <code>&lt;PREFIX&gt;_MODEL</code> and <code>&lt;PREFIX&gt;_API_URL</code> in
+          Vercel &rarr; Settings &rarr; Environment Variables, then press
+          <em>Re-read environment</em>. <code>.env.example</code> lists every model with
+          its three variables.
+        </p>
+        <div id="modelList" class="rows"></div>
       </div>
     </section>
 
-    <!-- =============================================================== usage -->
+<!-- =============================================================== usage -->
     <section class="view" id="view-usage" hidden>
       <div class="view-head">
         <div>

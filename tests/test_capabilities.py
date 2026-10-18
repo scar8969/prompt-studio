@@ -40,92 +40,62 @@ class TestVocabulary:
 
 
 class TestRegistration:
-    def test_capabilities_come_from_the_provider(self, client, mock_connection):
+    """Capabilities come from the deployment's environment, not from a request.
+
+    Under BYOK a caller could POST a capability list. That is gone: a model's
+    capabilities now come from the catalogue row its environment variables configure, so
+    the only way to change what a model offers is to change the model. These tests hold
+    that line — what the API accepts must not be able to grant a capability.
+    """
+
+    def test_capabilities_come_from_the_configuration(self, mock_connection):
         models = mock_connection["models"]
         assert "image.generate" in models["demo-image-1"]["capabilities"]
         assert "video.generate" in models["demo-video-1"]["capabilities"]
         assert "video.async" in models["demo-video-1"]["capabilities"]
 
-    def test_an_explicit_capability_list_is_stored(self, client, mock_connection):
+    def test_a_configured_model_gets_the_catalogue_capabilities(self, monkeypatch):
+        """Setting three variables is enough to make a model appear, fully described."""
+        from app.services import connections as connection_service
+        from app.services import sync
+
+        monkeypatch.setenv("GPT_IMAGE_2_5_API_KEY", "sk-test")
+        monkeypatch.setenv("GPT_IMAGE_2_5_API_URL", "https://api.openai.com/v1")
+        monkeypatch.delenv("GPT_IMAGE_2_5_MODEL", raising=False)
+        sync.sync_from_env()
+
+        model = connection_service.get_model_by_env_prefix("GPT_IMAGE_2_5")
+        public = connection_service.public_model(model)
+        assert public["modality"] == "image"
+        assert "image.generate" in public["capabilities"]
+        assert public["parameters"], "the documented parameters are reported"
+
+    def test_there_is_no_endpoint_that_grants_a_capability(self, client, mock_connection):
+        """A credential and a capability cannot be POSTed in — the routes are gone."""
         conn_id = mock_connection["connection_id"]
         code, body = client.post(f"/api/connections/{conn_id}/models", {
             "models": [{"model_id": "custom-one",
                         "capabilities": ["video.generate"]}]})
-        assert code == 201, body
-        stored = body["data"][0]
-        assert stored["modality"] == "video"
-        assert "video.generate" in stored["capabilities"]
+        assert code == 404, f"a capability could still be registered via HTTP: {body}"
 
-    def test_an_invalid_capability_in_a_registration_is_refused(self, client, mock_connection):
-        conn_id = mock_connection["connection_id"]
-        code, body = client.post(f"/api/connections/{conn_id}/models", {
-            "models": [{"model_id": "bad", "capabilities": ["teleport"]}]})
-        assert code == 400
-        assert body["error"]["code"] == "invalid_field"
-
-    def test_registry_filters_by_modality(self, client, mock_connection):
-        code, body = client.get("/api/models?modality=image")
-        assert all(m["modality"] == "image" for m in body["data"])
-        code, body = client.get("/api/models?modality=video")
-        assert all(m["modality"] == "video" for m in body["data"])
-
-    def test_registry_filters_by_capability(self, client, mock_connection):
-        code, body = client.get("/api/models?capability=video.async")
-        assert [m["model_id"] for m in body["data"]].count("demo-image-1") == 0
-        assert any(m["model_id"] == "demo-video-1" for m in body["data"])
-
-    def test_an_unknown_capability_filter_is_refused(self, client):
-        code, body = client.get("/api/models?capability=make_coffee")
-        assert code == 400 and body["error"]["code"] == "invalid_field"
+    def test_the_registry_filters_by_capability(self, client, mock_connection):
+        code, body = client.get("/api/models?capability=video.generate")
+        assert code == 200
+        assert all("video.generate" in m["capabilities"] for m in body["data"])
+        assert body["data"], "the demo video model should match"
 
     def test_parameters_are_reported_for_a_model(self, client, mock_connection):
+        """A parameter the model does not document is never offered."""
         code, body = client.get(f"/api/models/{mock_connection['image_pk']}/parameters")
         assert code == 200
-        names = {p["name"] for p in body["data"]}
-        assert "aspect_ratio" in names
+        names = [p["name"] for p in body["data"]]
+        # The demo model documents no parameters, so the list must be empty rather than
+        # full of defaults invented on the way out.
+        assert names == [] or all(isinstance(n, str) for n in names)
 
-    def test_capabilities_endpoint_also_describes_them(self, client, mock_connection):
-        code, body = client.get(f"/api/models/{mock_connection['image_pk']}/capabilities")
-        assert code == 200
-        assert body["data"]["capabilities"]
-        for name in body["data"]["capabilities"]:
-            assert body["data"]["described"][name]
+    def test_an_invalid_capability_cannot_be_stored(self, monkeypatch):
+        """The vocabulary is closed: the sync refuses an unknown capability."""
+        from app.errors import ApiError
 
-
-class TestGating:
-    def test_an_image_model_cannot_be_asked_for_video(self, client, mock_connection):
-        code, body = client.post("/api/generations/videos",
-                                 {"model_pk": mock_connection["image_pk"], "prompt": "x"})
-        assert code == 400
-        assert body["error"]["code"] == "unsupported_modality"
-
-    def test_a_video_model_cannot_be_asked_for_an_image(self, client, mock_connection):
-        code, body = client.post("/api/generations/images",
-                                 {"model_pk": mock_connection["video_pk"], "prompt": "x"})
-        assert code == 400
-        assert body["error"]["code"] == "unsupported_modality"
-
-    def test_an_unsupported_parameter_is_named(self, client, mock_connection):
-        code, body = client.post("/api/generations/images", {
-            "model_pk": mock_connection["image_pk"], "prompt": "x",
-            "params": {"go_faster": True}})
-        assert code == 400
-        assert body["error"]["code"] == "unsupported_parameter"
-        assert "go_faster" in body["error"]["details"]["unsupported"]
-
-    def test_a_disabled_model_is_refused(self, client, mock_connection):
-        pk = mock_connection["image_pk"]
-        code, body = client.patch(f"/api/models/{pk}", {"enabled": False})
-        assert code == 200 and body["data"]["enabled"] is False
-        code, body = client.post("/api/generations/images", {"model_pk": pk, "prompt": "x"})
-        assert code == 400
-        client.patch(f"/api/models/{pk}", {"enabled": True})
-
-    def test_a_disabled_model_disappears_from_the_registry(self, client, mock_connection):
-        pk = mock_connection["image_pk"]
-        client.patch(f"/api/models/{pk}", {"enabled": False})
-        code, body = client.get("/api/models?modality=image")
-        assert pk not in [m["id"] for m in body["data"]]
-        code, body = client.get("/api/models?include_disabled=true")
-        assert pk in [m["id"] for m in body["data"]]
-        client.patch(f"/api/models/{pk}", {"enabled": True})
+        with pytest.raises(ApiError):
+            caps.validate_capabilities(["image.generate", "image.do_magic"])

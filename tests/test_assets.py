@@ -139,7 +139,6 @@ class TestErrorVocabulary:
     def test_every_error_has_a_code_and_message(self, client):
         for method, path, payload in [
             ("GET", "/api/does-not-exist", None),
-            ("POST", "/api/connections", {}),
             ("POST", "/api/generations/images", {}),
             ("GET", "/api/models/mdl_nope", None),
         ]:
@@ -154,7 +153,7 @@ class TestErrorVocabulary:
         import urllib.error
 
         req = urllib.request.Request(
-            client.base + "/api/connections", data=b"{not json",
+            client.base + "/api/generations/images", data=b"{not json",
             method="POST", headers={"Content-Type": "application/json"})
         try:
             with urllib.request.urlopen(req, timeout=10) as resp:
@@ -168,7 +167,7 @@ class TestErrorVocabulary:
         import urllib.error
 
         req = urllib.request.Request(
-            client.base + "/api/connections", data=b"hello",
+            client.base + "/api/generations/images", data=b"hello",
             method="POST", headers={"Content-Type": "text/plain"})
         try:
             with urllib.request.urlopen(req, timeout=10) as resp:

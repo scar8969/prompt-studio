@@ -177,6 +177,35 @@ def env_prefix(model_id: str) -> str:
     return model_id.upper()
 
 
+#: Documented endpoints per model family, keyed by job-set id prefix.
+#:
+#: These are recorded so `<PREFIX>_API_URL` has a real default rather than a blank. They
+#: are the vendors' own published API bases — not derived from the model name, and not
+#: invented. A model whose family is not listed here gets an empty default, and
+#: `resolve()` then reports `_API_URL` as missing rather than pointing at a guess.
+API_URLS = {
+    # Google: Gemini API
+    "nano_banana": "https://generativelanguage.googleapis.com/v1beta",
+    "gemini_omni": "https://generativelanguage.googleapis.com/v1beta",
+    "veo3": "https://generativelanguage.googleapis.com/v1beta",
+    # OpenAI
+    "gpt_image": "https://api.openai.com/v1",
+    "openai_hazel": "https://api.openai.com/v1",
+    # Grok / xAI
+    "grok_": "https://api.x.ai/v1",
+    # Everything else on Higgsfield is served through their own gateway, which has no
+    # public REST base — so these stay blank on purpose and must be set explicitly.
+}
+
+
+def api_url_for(model_id: str) -> str:
+    """The documented endpoint for a model, or empty when there is no public one."""
+    for prefix, url in API_URLS.items():
+        if model_id.startswith(prefix):
+            return url
+    return ""
+
+
 def parameters_of(model: dict) -> dict:
     """The parameters the UI may offer: documented flags, with their accepted values."""
     skip = {"folder_id", "prompt", "mask"}
@@ -241,6 +270,7 @@ def render(models: list[dict]) -> str:
             f'        "job_set_type": {json.dumps(model["id"])},',
             f'        "env": {json.dumps(env_prefix(model["id"]))},',
             f'        "modality": {json.dumps(model["category"])},',
+            f'        "api_url": {json.dumps(api_url_for(model["id"]))},',
             f'        "capabilities": {json.dumps(caps)},',
             f'        "parameters": {json.dumps(params, sort_keys=True)},',
             "    },",
@@ -271,19 +301,45 @@ def render(models: list[dict]) -> str:
         '    return os.getenv(f"{prefix}_{suffix}", "").strip()',
         "",
         "",
+        "def read_key(prefix: str) -> str:",
+        '    """The credential for one model, straight from the environment.',
+        "",
+        "    Deliberately the only accessor: nothing caches it, so rotating a key in the",
+        "    deployment takes effect on the next invocation without a restart or a write.",
+        '    """',
+        '    return _env(prefix, "API_KEY")',
+        "",
+        "",
         "def resolve(entry: Dict[str, Any]) -> Dict[str, Any]:",
         '    """Read the configuration for one catalogue entry.',
         "",
-        "    Never invents a value: a missing credential means `configured: false`, and",
-        '    `missing` names the variable that would fix it."""',
+        "    Three variables per model, all read from the environment:",
+        "",
+        "        <PREFIX>_API_KEY   the credential",
+        "        <PREFIX>_MODEL     the model name to send (defaults to the documented id)",
+        "        <PREFIX>_API_URL   the endpoint (defaults to the provider's documented one)",
+        "",
+        "    Never invents a value: a missing key means `configured: false`, and",
+        "    `missing` names the variable that would fix it. An API URL set in the",
+        "    environment always wins over the catalogue's, so a gateway or proxy needs no",
+        "    code change.",
+        '    """',
         '    prefix = entry["env"]',
         '    key = _env(prefix, "API_KEY")',
         '    model_id = _env(prefix, "MODEL") or entry["job_set_type"]',
         '    enabled = _env(prefix, "ENABLED").lower() not in ("0", "false", "no")',
         "",
+        "    # A URL set on the model wins; otherwise the catalogue's documented endpoint.",
+        "    # The second is recorded, never guessed from the model name.",
+        '    api_url = _env(prefix, "API_URL") or entry.get("api_url", "")',
+        '    api_url_source = "env" if _env(prefix, "API_URL") else (',
+        '        "catalogue" if api_url else "")',
+        "",
         "    missing = []",
         "    if not key and not _already_authorised():",
         '        missing.append(f"{prefix}_API_KEY")',
+        "    if not api_url:",
+        '        missing.append(f"{prefix}_API_URL")',
         "",
         "    return {",
         '        "slug": entry["slug"],',
@@ -296,11 +352,21 @@ def render(models: list[dict]) -> str:
         '        "capabilities": entry["capabilities"],',
         '        "parameters": entry["parameters"],',
         '        "env_prefix": prefix,',
+        '        "api_url": api_url,',
+        '        "api_url_source": api_url_source,',
         '        "configured": not missing and enabled,',
         '        "enabled": enabled,',
         '        "missing": missing,',
         '        "has_key": bool(key),',
         "    }",
+        "",
+        "",
+        "def by_env(prefix: str) -> Optional[Dict[str, Any]]:",
+        '    """A resolved catalogue entry by its environment prefix."""',
+        "    for entry in all_models():",
+        '        if entry["env_prefix"] == prefix:',
+        "            return entry",
+        "    return None",
         "",
         "",
         "def all_models() -> List[Dict[str, Any]]:",

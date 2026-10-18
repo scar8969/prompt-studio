@@ -33,11 +33,12 @@ def available() -> Dict[str, Any]:
     if models:
         return {"available": True, "model": models[0]["display_name"], "model_pk": models[0]["id"]}
     return {"available": False,
-            "reason": "No chat model is registered. Add one from a connection that "
-                      "lists a chat-capable model."}
+            "reason": "No chat model is configured. Set its API key, name and URL in "
+                      "the environment."}
 
 
 def _chat_cfg(model_pk: str):
+    """The chat model, its adapter and a connection carrying its environment key."""
     model = store.row("SELECT * FROM models WHERE id=?", (model_pk,))
     if not model:
         raise ApiError("not_found", "No such model.", status=404)
@@ -46,20 +47,10 @@ def _chat_cfg(model_pk: str):
         raise ApiError("unsupported_modality",
                        f"{model['display_name']} is not a chat model.",
                        details={"capabilities": caps})
-    conn_row = get_connection(model["connection_id"])
-    secret = crypto.decrypt(conn_row.get("secret_encrypted", ""))
-    if not secret and conn_row["kind"] != "mock":
-        raise ApiError("invalid_api_key",
-                       "The stored key for this connection could not be read.")
-    pinned = ""
-    if conn_row["kind"] != "mock":
-        try:
-            pinned = resolve_pinned_ip(conn_row["base_url"])
-        except ApiError:
-            pinned = ""
-    conn = Connection(base_url=conn_row["base_url"], secret=secret,
-                      provider=conn_row["kind"], pinned_ip=pinned)
-    return model, get_adapter(conn_row["kind"]), conn
+    from .connections import adapter_and_connection
+
+    adapter, conn, _provider = adapter_and_connection(model)
+    return model, adapter, conn
 
 
 def reply(message: str, *, model_pk: str = "", history: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:

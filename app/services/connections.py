@@ -1,376 +1,112 @@
-"""Connections and the model registry (spec §16, §23 Phase 2, §25 BYOK/BYOM).
+"""The provider/model registry the app reads (spec §16, §25).
 
-The flow this implements is the spec's first vertical slice: a user enters a base URL,
-a key and a model id; the key is encrypted; the connection is *tested* against the
-provider; models are registered with an explicit capability profile; and only those
-capabilities drive the UI.
+**There is no BYOK here.** A model is not added by typing a key into a form: it is
+configured when the environment supplies `<PREFIX>_API_KEY`, `<PREFIX>_MODEL` and
+`<PREFIX>_API_URL`, and `services.sync` turns that into rows. This module therefore has
+no create/update/delete for a connection and no key decryption — a credential never
+enters the database, so there is nothing here to encrypt.
 
-Two things are deliberately strict:
+What remains is read-side: resolving a model's endpoint and dialect for the adapter,
+and serving the model registry the studios and the UI read.
 
-* `test_connection` makes a real request. A connection is never marked ``ok`` because
-  the URL parsed — an untested connection stays ``untested``.
-* `register_models` stores what the provider reported. A model whose capabilities
-  cannot be discovered is registered with ``image.generate`` only, because assuming
-  more is what produces buttons that fail.
+The `connections` table survives as an internal provider row (one per endpoint host)
+only because `generation_jobs.model_pk` references `models(id)` and a model belongs to
+a connection. It is not exposed as something a user manages; `public_provider()` is the
+read-only view of it.
 """
 
 from __future__ import annotations
 
-import time
+import logging
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlsplit
 
-from .. import crypto, store
-from ..adapters import Connection, get as get_adapter, install_defaults, known
-from ..adapters.base import Adapter, ModelInfo
+from .. import store
+from ..adapters import Connection, get as get_adapter, install_defaults
 from ..config import IS_PRODUCTION
 from ..errors import ApiError, not_found
-from ..security_url import check_url, resolve_pinned_ip
+from ..security_url import resolve_pinned_ip
 
-OWNER = "local"           # single-tenant local deployment; see docs/limits.md
+log = logging.getLogger("studio.connections")
+
+OWNER = "local"           # single-tenant deployment; see docs/limits.md
 WORKSPACE = "default"
 
 install_defaults()
 
 
 def _resolve(conn_row: Dict[str, Any]) -> Connection:
-    """Build an adapter connection, pinning the IP that was validated."""
+    """Build an adapter connection for an internal provider row.
+
+    No secret is attached: the credential travels separately (see `execution`), because
+    the key belongs to a model in the environment, not to the provider row.
+    """
     base_url = conn_row["base_url"]
-    secret = crypto.decrypt(conn_row.get("secret_encrypted", ""))
     pinned = ""
-    if not IS_PRODUCTION and conn_row.get("kind") != "mock":
+    if not IS_PRODUCTION and conn_row.get("kind") not in ("mock", "higgsfield"):
         try:
             pinned = resolve_pinned_ip(base_url)
         except ApiError:
             pinned = ""
-    return Connection(base_url=base_url, secret=secret, provider=conn_row["kind"],
+    return Connection(base_url=base_url, secret="", provider=conn_row["kind"],
                       pinned_ip=pinned)
 
 
-def public_connection(row: Dict[str, Any]) -> Dict[str, Any]:
-    """The only serialiser for a connection. Never includes the secret."""
+def public_provider(row: Dict[str, Any]) -> Dict[str, Any]:
+    """A provider row, safe to serialise. It has no credential to leak."""
     if not row:
         return {}
-    out = {
+    return {
         "id": row["id"],
         "name": row["name"],
-        "base_url": row["base_url"],
         "kind": row["kind"],
-        "status": row["status"],
-        "key_hint": row["key_hint"],
-        "has_key": bool(row["secret_encrypted"]),
-        "last_tested_at": row["last_tested_at"],
-        "last_error": row["last_error"],
+        "api_url": row["base_url"],
+        "source": "environment",
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
     }
-    return out
 
 
-def list_connections() -> List[Dict[str, Any]]:
+def list_providers() -> List[Dict[str, Any]]:
     rows = store.rows(
-        "SELECT * FROM connections WHERE owner_id=? ORDER BY created_at DESC", (OWNER,))
+        "SELECT * FROM connections WHERE owner_id=? ORDER BY name", (OWNER,))
     out = []
     for row in rows:
-        item = public_connection(row)
+        item = public_provider(row)
         item["model_count"] = store.scalar(
-            "SELECT COUNT(*) FROM models WHERE connection_id=?", (row["id"],)) or 0
+            "SELECT COUNT(*) FROM models WHERE connection_id=? AND enabled=1",
+            (row["id"],)) or 0
         out.append(item)
     return out
 
 
 def get_connection(connection_id: str) -> Dict[str, Any]:
+    """An internal provider row by id."""
     row = store.row("SELECT * FROM connections WHERE id=? AND owner_id=?",
                     (connection_id, OWNER))
     if not row:
-        raise not_found("connection")
+        raise not_found("provider")
     return row
 
 
-def create_connection(payload: Dict[str, Any]) -> Dict[str, Any]:
-    name = (payload.get("name") or "").strip() or "Untitled connection"
-    kind = (payload.get("kind") or "openai-compatible").strip().lower()
-    if kind == "mock":
-        base_url = "mock://offline"
-        secret = ""
-    else:
-        base_url = check_url(payload.get("base_url") or "")
-        secret = (payload.get("api_key") or "").strip()
-        if not secret:
-            raise ApiError("missing_field", "'api_key' is required for this connection.",
-                           details={"field": "api_key"})
-        if not known(kind) and kind not in ("openai-compatible", "openai", "custom"):
-            raise ApiError("invalid_field",
-                           f"Unknown connection kind '{kind}'. Known: "
-                           f"{', '.join(['mock', 'openai-compatible'])}.")
-
-    existing = store.row(
-        "SELECT id FROM connections WHERE owner_id=? AND base_url=? AND kind=?",
-        (OWNER, base_url, kind))
-    if existing:
-        raise ApiError("duplicate_connection",
-                       "A connection to that base URL already exists.",
-                       status=409, details={"connection_id": existing["id"]})
-
-    now = store.utcnow()
-    connection_id = store.new_id("conn_")
-    store.execute(
-        "INSERT INTO connections (id, owner_id, workspace_id, name, base_url, "
-        "secret_encrypted, key_hint, kind, status, created_at, updated_at) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-        (connection_id, OWNER, WORKSPACE, name, base_url, crypto.encrypt(secret),
-         crypto.mask(secret), kind, "untested", now, now))
-
-    row = get_connection(connection_id)
-    return public_connection(row)
+def connection_for_model(model: Dict[str, Any]) -> Dict[str, Any]:
+    return get_connection(model["connection_id"])
 
 
-def update_connection(connection_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    row = get_connection(connection_id)
-    sets: List[str] = []
-    params: List[Any] = []
-
-    if "name" in payload:
-        name = (payload.get("name") or "").strip()
-        if not name:
-            raise ApiError("invalid_field", "'name' cannot be empty.", details={"field": "name"})
-        sets.append("name=?"); params.append(name)
-
-    if "api_key" in payload:
-        secret = (payload.get("api_key") or "").strip()
-        if secret:
-            sets.append("secret_encrypted=?"); params.append(crypto.encrypt(secret))
-            sets.append("key_hint=?"); params.append(crypto.mask(secret))
-            # A rotated key invalidates the previous test result.
-            sets.append("status=?"); params.append("untested")
-
-    if "base_url" in payload:
-        new_url = check_url(payload.get("base_url") or "")
-        if new_url != row["base_url"]:
-            clash = store.row(
-                "SELECT id FROM connections WHERE owner_id=? AND base_url=? AND kind=? AND id<>?",
-                (OWNER, new_url, row["kind"], connection_id))
-            if clash:
-                raise ApiError("duplicate_connection",
-                               "Another connection already uses that base URL.", status=409)
-            sets.append("base_url=?"); params.append(new_url)
-            sets.append("status=?"); params.append("untested")
-
-    if not sets:
-        return public_connection(row)
-
-    sets.append("updated_at=?"); params.append(store.utcnow())
-    params.append(connection_id)
-    store.execute(f"UPDATE connections SET {', '.join(sets)} WHERE id=?", params)
-    return public_connection(get_connection(connection_id))
-
-
-def delete_connection(connection_id: str) -> Dict[str, Any]:
-    """Delete a connection, its models, and anything that referenced it.
-
-    After this, the encrypted secret is gone from the database — spec §25 lists
-    "deleting or disabling a connection is handled safely" and the end-to-end test
-    step 14 checks that secrets are no longer available.
-    """
-    get_connection(connection_id)
-    # Jobs keep their history but lose the pointer, so the record survives.
-    store.execute("UPDATE generation_jobs SET connection_id=NULL WHERE connection_id=?",
-                  (connection_id,))
-    store.execute("DELETE FROM models WHERE connection_id=?", (connection_id,))
-    store.execute("DELETE FROM connections WHERE id=?", (connection_id,))
-    return {"deleted": connection_id, "secret_removed": True}
-
-
-def rotate_key(connection_id: str, new_key: str) -> Dict[str, Any]:
-    if not (new_key or "").strip():
-        raise ApiError("missing_field", "'api_key' is required.", details={"field": "api_key"})
-    return update_connection(connection_id, {"api_key": new_key.strip()})
-
-
-def test_connection(connection_id: str) -> Dict[str, Any]:
-    """Make a real call to the provider and record the outcome (spec §25).
-
-    Returns a result the UI can show directly. Never raises for a provider failure —
-    a failed test is a result, and the connection's status reflects it.
-    """
-    row = get_connection(connection_id)
-    adapter = get_adapter(row["kind"])
-    conn = _resolve(row)
-
-    started = time.time()
-    try:
-        models = adapter.list_models(conn)
-        elapsed = int((time.time() - started) * 1000)
-        store.execute(
-            "UPDATE connections SET status='ok', last_tested_at=?, last_error='', "
-            "updated_at=? WHERE id=?",
-            (store.utcnow(), store.utcnow(), connection_id))
-        return {
-            "ok": True,
-            "latency_ms": elapsed,
-            "models_found": len(models),
-            "models": [m.model_id for m in models[:50]],
-            "offline": adapter.offline,
-        }
-    except ApiError as exc:
-        elapsed = int((time.time() - started) * 1000)
-        store.execute(
-            "UPDATE connections SET status='error', last_tested_at=?, last_error=?, "
-            "updated_at=? WHERE id=?",
-            (store.utcnow(), exc.code, store.utcnow(), connection_id))
-        return {"ok": False, "latency_ms": elapsed, "error": exc.to_dict()["error"]}
-
-
-def list_provider_models(connection_id: str) -> List[Dict[str, Any]]:
-    """Ask the provider what it has. Nothing is stored by this call."""
-    row = get_connection(connection_id)
-    adapter = get_adapter(row["kind"])
-    models = adapter.list_models(_resolve(row))
-    return [_model_info_out(m) for m in models]
-
-
-def _model_info_out(info: ModelInfo) -> Dict[str, Any]:
-    return {
-        "model_id": info.model_id,
-        "display_name": info.display_name or info.model_id,
-        "modality": info.modality,
-        "capabilities": info.capabilities,
-        "parameters": info.parameters,
-        "metadata": info.metadata,
-    }
-
-
-def register_models(connection_id: str, models: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Register one or more models against a connection.
-
-    Accepts either explicit entries (`{model_id, display_name, capabilities}`) or bare
-    ids, in which case capabilities are *discovered* from the provider. An explicit
-    capability list is stored as given — the caller may know better than the listing —
-    but it is still validated against the closed vocabulary.
-    """
-    row = get_connection(connection_id)
-    adapter = get_adapter(row["kind"])
-    conn = _resolve(row)
-
-    if not isinstance(models, list) or not models:
-        raise ApiError("missing_field", "'models' must be a non-empty list.",
-                       details={"field": "models"})
-
-    discovered: Optional[List[ModelInfo]] = None
-
-    def find(model_id: str) -> Optional[ModelInfo]:
-        nonlocal discovered
-        if discovered is None:
-            try:
-                discovered = adapter.list_models(conn)
-            except ApiError:
-                discovered = []
-        for info in discovered:
-            if info.model_id == model_id:
-                return info
-        return None
-
-    out: List[Dict[str, Any]] = []
-    for entry in models[:100]:
-        if isinstance(entry, str):
-            entry = {"model_id": entry}
-        if not isinstance(entry, dict):
-            continue
-        model_id = (entry.get("model_id") or entry.get("id") or "").strip()
-        if not model_id:
-            continue
-
-        capabilities = entry.get("capabilities")
-        if not isinstance(capabilities, list) or not capabilities:
-            info = find(model_id)
-            capabilities = list(info.capabilities) if info else ["image.generate"]
-            metadata = dict(info.metadata) if info else {}
-            modality = info.modality if info else "image"
-            parameters = list(info.parameters) if info else []
-            display_name = (entry.get("display_name")
-                            or (info.display_name if info else "") or model_id)
-        else:
-            from ..capabilities import validate_capabilities, modality_for
-            capabilities = validate_capabilities(capabilities)
-            modality = modality_for(capabilities)
-            metadata = {}
-            display_name = entry.get("display_name") or model_id
-            parameters = [
-                {"name": "aspect_ratio", "type": "enum",
-                 "choices": ["16:9", "9:16", "1:1"] if modality == "video"
-                            else ["1:1", "3:4", "4:3", "16:9", "9:16"]},
-                {"name": "count", "type": "int", "minimum": 1,
-                 "maximum": 2 if modality == "video" else 4},
-            ]
-            if modality == "video":
-                parameters.append({"name": "duration", "type": "int",
-                                   "minimum": 1, "maximum": 60})
-
-        existing = store.row(
-            "SELECT id FROM models WHERE connection_id=? AND model_id=?",
-            (connection_id, model_id))
-        if existing:
-            store.execute(
-                "UPDATE models SET display_name=?, modality=?, metadata_json=?, "
-                "updated_at=? WHERE id=?",
-                (display_name, modality, store.dumps(metadata), store.utcnow(),
-                 existing["id"]))
-            model_pk = existing["id"]
-        else:
-            model_pk = store.new_id("mdl_")
-            now = store.utcnow()
-            store.execute(
-                "INSERT INTO models (id, connection_id, owner_id, model_id, "
-                "display_name, modality, enabled, metadata_json, created_at, updated_at) "
-                "VALUES (?,?,?,?,?,?,1,?,?,?)",
-                (model_pk, connection_id, OWNER, model_id, display_name, modality,
-                 store.dumps(metadata), now, now))
-
-        _store_capabilities(model_pk, capabilities)
-        _store_parameters(model_pk, parameters)
-        out.append(public_model(store.row("SELECT * FROM models WHERE id=?", (model_pk,))))
-
-    return out
-
-
-def _store_capabilities(model_pk: str, capabilities: List[str]) -> None:
-    store.execute("DELETE FROM model_capabilities WHERE model_pk=?", (model_pk,))
-    for capability in capabilities:
-        # `ON CONFLICT DO NOTHING` is understood by both SQLite (>=3.24) and Postgres;
-        # `INSERT OR IGNORE` is SQLite-only and would be a syntax error in production.
-        store.execute(
-            "INSERT INTO model_capabilities (model_pk, capability) VALUES (?,?) "
-            "ON CONFLICT (model_pk, capability) DO NOTHING",
-            (model_pk, capability))
-
-
-def _store_parameters(model_pk: str, parameters: List[Dict[str, Any]]) -> None:
-    store.execute("DELETE FROM model_parameters WHERE model_pk=?", (model_pk,))
-    for spec in parameters:
-        if not isinstance(spec, dict) or not spec.get("name"):
-            continue
-        # The columns are deleted first, so a plain insert is enough and portable.
-        store.execute(
-            "INSERT INTO model_parameters (model_pk, name, type, "
-            "default_value, minimum, maximum, choices_json, required) "
-            "VALUES (?,?,?,?,?,?,?,?) "
-            "ON CONFLICT (model_pk, name) DO UPDATE SET "
-            "type=excluded.type, default_value=excluded.default_value, "
-            "minimum=excluded.minimum, maximum=excluded.maximum, "
-            "choices_json=excluded.choices_json, required=excluded.required",
-            (model_pk, spec["name"], spec.get("type", "string"),
-             None if spec.get("default") is None else str(spec["default"]),
-             spec.get("minimum"), spec.get("maximum"),
-             store.dumps(spec.get("choices", [])), 1 if spec.get("required") else 0))
-
+# ---------------------------------------------------------------------------
+# The model registry (read side)
+# ---------------------------------------------------------------------------
 
 def capabilities_of(model_pk: str) -> List[str]:
     return [r["capability"] for r in store.rows(
-        "SELECT capability FROM model_capabilities WHERE model_pk=?", (model_pk,))]
+        "SELECT capability FROM model_capabilities WHERE model_pk=? ORDER BY capability",
+        (model_pk,))]
 
 
 def parameters_of(model_pk: str) -> List[Dict[str, Any]]:
     out = []
-    for row in store.rows("SELECT * FROM model_parameters WHERE model_pk=?", (model_pk,)):
+    for row in store.rows(
+            "SELECT * FROM model_parameters WHERE model_pk=? ORDER BY name", (model_pk,)):
         out.append({
             "name": row["name"],
             "type": row["type"],
@@ -384,14 +120,21 @@ def parameters_of(model_pk: str) -> List[Dict[str, Any]]:
 
 
 def public_model(row: Dict[str, Any]) -> Dict[str, Any]:
+    """One model as the API and the UI see it.
+
+    `configured` is not stored: it is true when the row is enabled, because the row only
+    exists in this state after the environment supplied a key, a name and a URL.
+    """
     if not row:
         return {}
-    connection = store.row("SELECT name, kind, base_url FROM connections WHERE id=?",
-                           (row["connection_id"],)) or {}
+    provider = store.row("SELECT name, kind, base_url FROM connections WHERE id=?",
+                         (row["connection_id"],)) or {}
+    metadata = store.load_json(row["metadata_json"], {})
     return {
         "id": row["id"],
-        "connection_id": row["connection_id"],
-        "connection_name": connection.get("name", ""),
+        "provider_id": row["connection_id"],
+        "provider": provider.get("name", ""),
+        "api_url": provider.get("base_url", ""),
         "model_id": row["model_id"],
         "display_name": row["display_name"],
         "modality": row["modality"],
@@ -399,7 +142,8 @@ def public_model(row: Dict[str, Any]) -> Dict[str, Any]:
         "is_default": bool(row["is_default"]),
         "capabilities": capabilities_of(row["id"]),
         "parameters": parameters_of(row["id"]),
-        "metadata": store.load_json(row["metadata_json"], {}),
+        "env_prefix": (metadata or {}).get("env_prefix", ""),
+        "metadata": metadata,
         "created_at": row["created_at"],
     }
 
@@ -428,33 +172,116 @@ def list_models(*, modality: str = "", enabled_only: bool = True,
 
 
 def update_model(model_pk: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Only presentation is editable. A key, a name or a URL is an environment change."""
     get_model(model_pk)
     sets: List[str] = []
     params: List[Any] = []
-    if "display_name" in payload:
-        sets.append("display_name=?"); params.append(str(payload["display_name"])[:200])
     if "enabled" in payload:
-        sets.append("enabled=?"); params.append(1 if payload["enabled"] else 0)
+        sets.append("enabled=?")
+        params.append(1 if payload["enabled"] else 0)
     if "is_default" in payload:
         if payload["is_default"]:
             row = store.row("SELECT modality FROM models WHERE id=?", (model_pk,))
-            store.execute("UPDATE models SET is_default=0 WHERE owner_id=? AND modality=?",
-                          (OWNER, row["modality"]))
-        sets.append("is_default=?"); params.append(1 if payload["is_default"] else 0)
-    if "capabilities" in payload:
-        from ..capabilities import validate_capabilities, modality_for
-        caps = validate_capabilities(payload["capabilities"])
-        _store_capabilities(model_pk, caps)
-        sets.append("modality=?"); params.append(modality_for(caps))
+            store.execute(
+                "UPDATE models SET is_default=0 WHERE owner_id=? AND modality=?",
+                (OWNER, row["modality"]))
+        sets.append("is_default=?")
+        params.append(1 if payload["is_default"] else 0)
     if not sets:
         return public_model(get_model(model_pk))
-    sets.append("updated_at=?"); params.append(store.utcnow())
+    sets.append("updated_at=?")
+    params.append(store.utcnow())
     params.append(model_pk)
     store.execute(f"UPDATE models SET {', '.join(sets)} WHERE id=?", params)
     return public_model(get_model(model_pk))
 
 
+def get_model_by_env_prefix(prefix: str) -> Dict[str, Any]:
+    """A model row by the environment prefix it was configured from.
+
+    More stable than the provider's model id: `<PREFIX>_MODEL` can rename a model, and a
+    test or an operator asking "what is NANO_BANANA_2" means the prefix.
+    """
+    rows = store.rows("SELECT * FROM models WHERE owner_id=? ORDER BY enabled DESC",
+                      (OWNER,))
+    for row in rows:
+        metadata = store.load_json(row["metadata_json"], {}) or {}
+        if metadata.get("env_prefix") == prefix:
+            return row
+    raise not_found("model")
+
+
+def get_model_by_model_id(model_id: str) -> Dict[str, Any]:
+    """A model row by the provider's own id. Raises `not_found` when absent."""
+    row = store.row(
+        "SELECT * FROM models WHERE owner_id=? AND model_id=? ORDER BY enabled DESC LIMIT 1",
+        (OWNER, model_id))
+    if not row:
+        raise not_found("model")
+    return row
+
+
+def adapter_and_connection(model: Dict[str, Any]) -> tuple:
+    """The adapter and connection for a model, with its key taken from the environment.
+
+    This is the single place the credential is attached, and it comes from the catalogue
+    (which reads `os.environ`) rather than from a column. If the key has since been
+    removed from the environment, the model is disabled on the next sync and this
+    refuses rather than calling out with an empty key.
+    """
+    from .. import catalog as catalog_module
+
+    provider = connection_for_model(model)
+
+    # The demo provider is not a real model and has no environment variables: it exists
+    # so the app can be exercised without spending credit. It is reached directly.
+    if provider["kind"] == "mock":
+        pinned = ""
+        return (get_adapter("mock"),
+                Connection(base_url=provider["base_url"], secret="",
+                           provider="mock", pinned_ip=pinned),
+                provider)
+
+    # Look the catalogue entry up by the *environment prefix* it was created from, not by
+    # the model id: `<PREFIX>_MODEL` is allowed to rename the id, and the prefix is the
+    # stable key that identifies which variables belong to this model.
+    metadata = store.load_json(model.get("metadata_json"), {}) or {}
+    prefix = metadata.get("env_prefix", "")
+    entry = catalog_module.by_env(prefix) if prefix else None
+    if entry is None:
+        raise ApiError(
+            "invalid_model_id",
+            f"{model['display_name'] or model['model_id']} is not in the catalogue, so "
+            "there is no environment variable to read its key from.")
+    if not entry["configured"]:
+        raise ApiError(
+            "invalid_api_key",
+            f"{entry['label']} is not configured: set {', '.join(entry['missing'])} in the "
+            "environment.", details={"missing": entry["missing"]})
+
+    key = catalog_module.read_key(entry["env_prefix"])
+    url = entry["api_url"] or provider["base_url"]
+
+    # The endpoint now arrives from the environment instead of a form, so this is where
+    # the SSRF guard has to run. `resolve_pinned_ip` refuses a private, loopback or
+    # link-local address (and a non-http scheme) unless development has explicitly
+    # allowed it — the same rule that used to apply when a user typed the URL.
+    try:
+        pinned = resolve_pinned_ip(url)
+    except ApiError:
+        # A `cli://` endpoint has no host to resolve; it is not fetched over HTTP, so
+        # there is nothing to pin and nothing to block.
+        if url.startswith("cli://"):
+            pinned = ""
+        else:
+            raise
+    conn = Connection(base_url=url, secret=key, provider=provider["kind"],
+                      pinned_ip=pinned)
+    return get_adapter(provider["kind"]), conn, provider
+
+
 def delete_model(model_pk: str) -> Dict[str, Any]:
+    """Remove a model row. Only used by tests and by an operator cleaning up."""
     get_model(model_pk)
     store.execute("UPDATE generation_jobs SET model_pk=NULL WHERE model_pk=?", (model_pk,))
     store.execute("DELETE FROM models WHERE id=?", (model_pk,))

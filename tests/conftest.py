@@ -28,6 +28,15 @@ os.environ.setdefault("JOB_WORKERS", "2")
 #: It is wiped at session start, so it must be a throwaway database. This is how the
 #: psycopg2 row-mapping bug was caught — SQLite passed while every Postgres endpoint
 #: returned 500.
+# Credentials are environment variables now, so a developer's shell can change what the
+# app sees. The suite must not depend on that: any <PREFIX>_API_KEY / _API_URL / _MODEL
+# from the ambient environment is cleared, and tests that need one set it explicitly with
+# monkeypatch. Without this a stray export turns a passing run into an intermittent one.
+for _name in [k for k in os.environ
+              if k.endswith(("_API_KEY", "_API_URL", "_MODEL"))
+              and k.split("_")[0] not in ("RELAYAI", "HERMES", "COMPOSIO")]:
+    os.environ.pop(_name, None)
+
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "").strip()
 if TEST_DATABASE_URL:
     os.environ["DATABASE_URL"] = TEST_DATABASE_URL
@@ -129,44 +138,68 @@ def client(server):
 
 
 @pytest.fixture()
-def mock_connection(client):
-    """A fresh mock connection with its two models registered.
+def mock_connection():
+    """A mock provider with its two demo models, seeded straight into the registry.
 
-    A mock connection's base URL is a fixed constant, and the API (correctly) refuses a
-    second connection to the same URL — so this test's connection is given a unique
-    name and the duplicate is deleted first, keeping each test independent without
-    weakening the guard being tested.
+    Credentials are environment-only now, so there is no API call that creates a
+    connection and no way to POST a model. The demo provider is not in the 59-model
+    catalogue either (it is not a real Higgsfield model), so this writes the rows
+    directly — which is what `services.sync` does for a real model, minus the env read.
     """
-    import uuid
+    from app import store
+    from app.services import connections as connection_service
 
-    # Reuse any existing mock connection, or make one.
-    code, listing = client.get("/api/connections")
-    existing = [c for c in listing.get("data", []) if c["kind"] == "mock"]
-    if existing:
-        conn_id = existing[0]["id"]
-        code, body = client.post(f"/api/connections/{conn_id}/models",
-                                 {"models": ["demo-image-1", "demo-video-1"]})
-        assert code == 201, body
-    else:
-        code, body = client.post("/api/connections", {
-            "name": f"Test mock {uuid.uuid4().hex[:6]}", "kind": "mock",
-            "base_url": "mock://offline"})
-        assert code == 201, body
-        conn_id = body["data"]["id"]
-        code, body = client.post(f"/api/connections/{conn_id}/models",
-                                 {"models": ["demo-image-1", "demo-video-1"]})
-        assert code == 201, body
+    provider = store.row(
+        "SELECT * FROM connections WHERE owner_id='local' AND base_url='mock://offline'")
+    if not provider:
+        provider_id = store.new_id("prov_")
+        now = store.utcnow()
+        store.execute(
+            "INSERT INTO connections (id, owner_id, workspace_id, name, kind, base_url, "
+            "secret_encrypted, key_hint, status, last_error, uses_platform_credentials, "
+            "created_at, updated_at) VALUES (?,?,?,?,?,?,'','','env','',1,?,?)",
+            (provider_id, "local", "default", "Demo", "mock", "mock://offline", now, now))
+        provider = store.row("SELECT * FROM connections WHERE id=?", (provider_id,))
 
-    # The registry is the source of truth for registered models.
-    code, body = client.get(f"/api/models?include_disabled=true")
-    models = {m["model_id"]: m for m in body.get("data", [])
-              if m["connection_id"] == conn_id}
-    if not models:
-        code, body = client.post(f"/api/connections/{conn_id}/models",
-                                 {"models": ["demo-image-1", "demo-video-1"]})
-        assert code == 201, body
-        models = {m["model_id"]: m for m in body["data"]}
-    return {"connection_id": conn_id, "models": models,
+    models = {}
+    for model_id, modality, capabilities in (
+            ("demo-image-1", "image", ["image.generate"]),
+            ("demo-video-1", "video", ["video.generate", "video.async"])):
+        existing = store.row(
+            "SELECT * FROM models WHERE owner_id='local' AND connection_id=? AND model_id=?",
+            (provider["id"], model_id))
+        if existing:
+            store.execute("UPDATE models SET enabled=1 WHERE id=?", (existing["id"],))
+            model_pk = existing["id"]
+        else:
+            model_pk = store.new_id("mdl_")
+            now = store.utcnow()
+            store.execute(
+                "INSERT INTO models (id, connection_id, owner_id, model_id, display_name, "
+                "modality, enabled, is_default, metadata_json, created_at, updated_at) "
+                "VALUES (?,?,?,?,?,?,1,0,?,?,?)",
+                (model_pk, provider["id"], "local", model_id, model_id, modality,
+                 store.dumps({"source": "demo"}), now, now))
+        if model_id == "demo-image-1":
+            # The demo adapter produces N images when asked, so the parameter is real
+            # for this model — capability gating refuses anything it does not document.
+            store.execute("DELETE FROM model_parameters WHERE model_pk=?", (model_pk,))
+            store.execute(
+                "INSERT INTO model_parameters (model_pk, name, type, default_value, "
+                "minimum, maximum, required, choices_json) VALUES (?,?,?,?,?,?,?,?)",
+                (model_pk, "count", "integer", "1", "1", "4", 0, store.dumps([])))
+
+        # Applied whether the row was created now or reused: a stale row from an earlier
+        # run would otherwise keep an out-of-date capability set.
+        store.execute("DELETE FROM model_capabilities WHERE model_pk=?", (model_pk,))
+        for capability in capabilities:
+            store.execute(
+                "INSERT INTO model_capabilities (model_pk, capability) VALUES (?,?) "
+                "ON CONFLICT (model_pk, capability) DO NOTHING", (model_pk, capability))
+        models[model_id] = connection_service.public_model(
+            store.row("SELECT * FROM models WHERE id=?", (model_pk,)))
+
+    return {"connection_id": provider["id"], "models": models,
             "image_pk": models["demo-image-1"]["id"],
             "video_pk": models["demo-video-1"]["id"]}
 

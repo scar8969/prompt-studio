@@ -139,13 +139,18 @@ LOG_LEVEL=INFO
 #
 # Every model Higgsfield offers. For each one:
 #
-#   <PREFIX>_API_KEY   the credential
+#   <PREFIX>_API_KEY   the credential                          (required)
 #   <PREFIX>_MODEL     the model name to send (defaults to the documented id below,
 #                      so leave it blank unless you are overriding it)
+#   <PREFIX>_API_URL   the endpoint (defaults to the documented one below)
 #   <PREFIX>_ENABLED   set to 0 to hide a model without removing its key
 #
-# Leave a key blank and that model reports `configured: false` and is hidden from
-# the studios. Nothing is guessed: no key, no model.
+# Leave a key or the URL blank and that model reports `configured: false` and is
+# hidden from the studios. Nothing is guessed: no key, no model, no endpoint.
+#
+# There is no key-entry screen in the app. This file is the only place a credential
+# is configured, and on Vercel that means Project -> Settings -> Environment Variables.
+# Rotating a key is an edit here (or there) and takes effect on the next request.
 #
 # Check what is configured at any time:   python -m app.cli catalog
 #
@@ -194,6 +199,7 @@ def render() -> str:
                 f"\n# {model['label']}  —  job_set_type: {model['job_set_type']}\n"
                 f"{prefix}_API_KEY=\n"
                 f"{prefix}_MODEL={model['job_set_type']}\n"
+                f"{prefix}_API_URL={model.get('api_url', '')}\n"
             )
     parts.append(
         "\n\n# =============================================================================\n"

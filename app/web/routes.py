@@ -78,7 +78,7 @@ def health(req: Request) -> Tuple[Dict[str, Any], int]:
         "adapters": adapter_names(),
         "schema_version": store.schema_version(),
         "counts": {
-            "connections": store.scalar("SELECT COUNT(*) FROM connections") or 0,
+            "providers": store.scalar("SELECT COUNT(*) FROM connections") or 0,
             "models": store.scalar("SELECT COUNT(*) FROM models") or 0,
             "jobs": store.scalar("SELECT COUNT(*) FROM generation_jobs") or 0,
             "assets": store.scalar("SELECT COUNT(*) FROM assets") or 0,
@@ -93,59 +93,31 @@ def capabilities_index(req: Request) -> Tuple[Dict[str, Any], int]:
 
 
 # ===========================================================================
-# Connections (BYOK/BYOM)
+# Providers and models — read-only, because credentials are environment-only
 # ===========================================================================
+#
+# There is no POST here on purpose. A key, a model name and an API URL are set in the
+# environment (Vercel → Settings → Environment Variables), so the API can show what is
+# configured and hide a model that is not, but it cannot accept a credential. That is
+# the BYOK removal: the only writer is the deployment's environment.
 
-@router.get("/api/connections")
-def list_connections(req: Request) -> Tuple[Dict[str, Any], int]:
-    return {"data": conn_service.list_connections()}, 200
-
-
-@router.post("/api/connections")
-def create_connection(req: Request) -> Tuple[Dict[str, Any], int]:
-    return {"data": conn_service.create_connection(req.body)}, 201
-
-
-@router.get("/api/connections/{connection_id}")
-def get_connection(req: Request) -> Tuple[Dict[str, Any], int]:
-    row = conn_service.get_connection(req.path_params["connection_id"])
-    return {"data": conn_service.public_connection(row)}, 200
+@router.get("/api/providers")
+def list_providers(req: Request) -> Tuple[Dict[str, Any], int]:
+    """The provider endpoints the configured models point at."""
+    return {"data": conn_service.list_providers()}, 200
 
 
-@router.patch("/api/connections/{connection_id}")
-def update_connection(req: Request) -> Tuple[Dict[str, Any], int]:
-    return {"data": conn_service.update_connection(req.path_params["connection_id"], req.body)}, 200
+@router.post("/api/sync")
+def sync_models(req: Request) -> Tuple[Dict[str, Any], int]:
+    """Re-read the environment and update the registry.
 
+    Useful after adding a key on Vercel without waiting for a cold start, and it is what
+    the CLI calls. Idempotent, and it never deletes a model (jobs reference them), it
+    only enables and disables.
+    """
+    from ..services import sync
 
-@router.delete("/api/connections/{connection_id}")
-def delete_connection(req: Request) -> Tuple[Dict[str, Any], int]:
-    return {"data": conn_service.delete_connection(req.path_params["connection_id"])}, 200
-
-
-@router.post("/api/connections/{connection_id}/test")
-def test_connection(req: Request) -> Tuple[Dict[str, Any], int]:
-    return {"data": conn_service.test_connection(req.path_params["connection_id"])}, 200
-
-
-@router.post("/api/connections/{connection_id}/rotate-key")
-def rotate_key(req: Request) -> Tuple[Dict[str, Any], int]:
-    key = req.require("api_key")
-    if not isinstance(key, str):
-        raise ApiError("invalid_field", "'api_key' must be text.", details={"field": "api_key"})
-    return {"data": conn_service.rotate_key(req.path_params["connection_id"], key)}, 200
-
-
-@router.get("/api/connections/{connection_id}/models")
-def provider_models(req: Request) -> Tuple[Dict[str, Any], int]:
-    models = conn_service.list_provider_models(req.path_params["connection_id"])
-    return {"data": models, "total": len(models)}, 200
-
-
-@router.post("/api/connections/{connection_id}/models")
-def register_models(req: Request) -> Tuple[Dict[str, Any], int]:
-    models = req.require("models")
-    registered = conn_service.register_models(req.path_params["connection_id"], models)
-    return {"data": registered, "total": len(registered)}, 201
+    return {"data": sync.sync_from_env()}, 200
 
 
 # ===========================================================================

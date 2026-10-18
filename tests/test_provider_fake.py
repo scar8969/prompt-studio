@@ -234,30 +234,69 @@ class TestFakeProviderErrors:
         assert exc.value.code in ("connection_failed", "provider_timeout")
 
 
-class TestThroughTheApi:
-    def test_fake_provider_end_to_end_connection_test(self, client, fake_provider):
-        code, body = client.post("/api/connections", {
-            "name": "fake", "kind": "openai-compatible",
-            "base_url": fake_provider.base_url, "api_key": "sk-fake-123456789"})
-        assert code == 201, body
-        conn_id = body["data"]["id"]
+class TestThroughTheEnvironment:
+    """The same fake provider, reached the way the app now reaches one.
 
-        code, body = client.post(f"/api/connections/{conn_id}/test")
-        assert code == 200, body
-        assert body["data"]["ok"] is True
-        assert body["data"]["models_found"] >= 3
+    Under BYOK these tests created a connection and pressed "test". There is no such
+    button and no stored key: a model is reached because the environment names its key,
+    model id and URL. The point of the test is unchanged — a real request goes out and a
+    bad key is reported as `invalid_api_key`, not swallowed.
+    """
 
-    def test_fake_provider_a_bad_key_marks_the_connection_failed(self, client, fake_provider):
-        code, body = client.post("/api/connections", {
-            "name": "fake bad", "kind": "openai-compatible",
-            "base_url": fake_provider.base_url, "api_key": "sk-fake-123456789"})
-        conn_id = body["data"]["id"]
+    def test_a_configured_model_reaches_the_provider(self, client, fake_provider, monkeypatch):
+        from app.services import connections as connection_service
+        from app.services import sync
+
+        monkeypatch.setenv("GPT_IMAGE_2_5_API_KEY", "test-key")
+        monkeypatch.setenv("GPT_IMAGE_2_5_API_URL", fake_provider.base_url)
+        monkeypatch.delenv("GPT_IMAGE_2_5_MODEL", raising=False)
+        monkeypatch.setenv("ALLOW_PRIVATE_UPSTREAM", "1")
+        sync.sync_from_env()
+
+        model = connection_service.get_model_by_env_prefix("GPT_IMAGE_2_5")
+        adapter, conn, provider = connection_service.adapter_and_connection(model)
+        assert conn.base_url == fake_provider.base_url
+        assert conn.secret == "test-key"
+
+        # A real round trip: the adapter asks the provider what it has.
+        listed = adapter.list_models(conn)
+        assert len(listed) >= 3
+        # And the provider row is a real endpoint, not a placeholder.
+        assert provider["base_url"] == fake_provider.base_url
+
+    def test_a_bad_key_is_reported_as_an_auth_failure(self, client, fake_provider,
+                                                      monkeypatch):
+        from app.errors import ApiError
+        from app.services import connections as connection_service
+        from app.services import sync
+
+        monkeypatch.setenv("NANO_BANANA_2_API_KEY", "bad-key")
+        monkeypatch.setenv("NANO_BANANA_2_API_URL", fake_provider.base_url)
+        monkeypatch.delenv("NANO_BANANA_2_MODEL", raising=False)
+        monkeypatch.setenv("ALLOW_PRIVATE_UPSTREAM", "1")
+        # The adapter appends "/models" to the base URL, so with a base of .../v1 the
+        # request path is /v1/models. Override on that exact path.
         fake_provider.override["/v1/models"] = (401, {"error": {"message": "bad key"}})
-        code, body = client.post(f"/api/connections/{conn_id}/test")
-        assert code == 200
-        assert body["data"]["ok"] is False
-        assert body["data"]["error"]["code"] == "invalid_api_key"
+        sync.sync_from_env()
 
-        code, body = client.get(f"/api/connections/{conn_id}")
-        assert body["data"]["status"] == "error"
-        assert body["data"]["last_error"] == "invalid_api_key"
+        model = connection_service.get_model_by_env_prefix("NANO_BANANA_2")
+        adapter, conn, _provider = connection_service.adapter_and_connection(model)
+        # Assert the credential is actually attached before asking: without it the
+        # request would be an unauthenticated call, and the 401 would prove nothing.
+        assert conn.secret == "bad-key", "the key was not read from the environment"
+        with pytest.raises(ApiError) as exc:
+            adapter.list_models(conn)
+        assert exc.value.code == "invalid_api_key", exc.value.code
+
+    def test_a_model_without_a_key_is_not_reachable(self, client, monkeypatch):
+        """No env, no model: resolving it must fail rather than call out with nothing."""
+        from app.errors import ApiError
+        from app.services import connections as connection_service
+        from app.services import sync
+
+        monkeypatch.delenv("SOUL_API_KEY", raising=False)
+        monkeypatch.delenv("SOUL_API_URL", raising=False)
+        sync.sync_from_env()
+        # The row is disabled by the sync, so it is not in the enabled list at all.
+        enabled = [m["model_id"] for m in connection_service.list_models()]
+        assert "text2image_soul_v2" not in enabled

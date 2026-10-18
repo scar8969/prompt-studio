@@ -59,84 +59,103 @@ class TestMasking:
         assert len(masked) < len(SECRET)
 
 
-class TestKeyNeverLeavesTheServer:
-    def test_create_response_has_no_plaintext_key(self, client):
-        code, body = client.post("/api/connections", {
-            "name": "leak check", "kind": "openai-compatible",
-            "base_url": f"https://api.example.com/{uuid.uuid4().hex[:8]}/v1", "api_key": SECRET})
-        assert code == 201
-        assert SECRET not in json.dumps(body)
-        assert body["data"]["key_hint"] == "sk-l…5b4a"
+class TestNoCredentialIsEverStored:
+    """The strongest form of "the key never leaves the server": it never arrives.
 
-    def test_read_endpoints_have_no_plaintext_key(self, client):
-        code, body = client.post("/api/connections", {
-            "name": "leak check 2", "kind": "openai-compatible",
-            "base_url": f"https://api2.example.com/{uuid.uuid4().hex[:8]}/v1", "api_key": SECRET})
-        conn_id = body["data"]["id"]
-        for path in (f"/api/connections/{conn_id}", "/api/connections"):
-            code, body = client.get(path)
-            assert code == 200, path
-            assert SECRET not in json.dumps(body), path
+    Under BYOK a key was POSTed, encrypted and stored, and these tests checked the
+    ciphertext was unreadable. The app no longer accepts a key at all — credentials come
+    from the environment — so the property to assert is that no credential column is
+    ever written and no endpoint returns one.
+    """
 
-    def test_the_database_holds_ciphertext_only(self, client):
-        code, body = client.post("/api/connections", {
-            "name": "at rest", "kind": "openai-compatible",
-            "base_url": f"https://api3.example.com/{uuid.uuid4().hex[:8]}/v1", "api_key": SECRET})
-        conn_id = body["data"]["id"]
-        row = store.row("SELECT secret_encrypted FROM connections WHERE id=?", (conn_id,))
-        assert SECRET not in row["secret_encrypted"]
-        assert crypto.decrypt(row["secret_encrypted"]) == SECRET
+    def test_there_is_no_endpoint_that_accepts_a_key(self, client):
+        """Creating or rotating a connection is gone, not merely undocumented."""
+        for method, path in (
+                ("post", "/api/connections"),
+                ("patch", "/api/connections/anything"),
+                ("delete", "/api/connections/anything"),
+                ("post", "/api/connections/anything/rotate-key")):
+            code, _ = getattr(client, method)(path)
+            assert code in (404, 405), (
+                f"{method.upper()} {path} still exists ({code}) — BYOK was not removed")
 
-    def test_deleting_a_connection_removes_the_ciphertext(self, client):
-        code, body = client.post("/api/connections", {
-            "name": "delete me", "kind": "openai-compatible",
-            "base_url": f"https://api4.example.com/{uuid.uuid4().hex[:8]}/v1", "api_key": SECRET})
-        conn_id = body["data"]["id"]
-        assert store.row("SELECT id FROM connections WHERE id=?", (conn_id,))
+    def test_the_providers_endpoint_is_read_only(self, client):
+        code, body = client.get("/api/providers")
+        assert code == 200
+        for provider in body["data"]:
+            assert "secret" not in str(provider).lower()
+            assert "key_hint" not in provider
+            assert set(provider) >= {"id", "name", "kind", "api_url"}
 
-        code, body = client.delete(f"/api/connections/{conn_id}")
-        assert code == 200 and body["data"]["secret_removed"] is True
-        assert store.row("SELECT id FROM connections WHERE id=?", (conn_id,)) is None
+    def test_no_credential_column_is_written(self, client, mock_connection):
+        """Even a configured provider row stores no secret."""
+        from app import store
 
-        # Nothing anywhere in the database still holds it.
-        for row in store.rows("SELECT secret_encrypted FROM connections"):
-            assert SECRET not in (row["secret_encrypted"] or "")
+        rows = store.rows("SELECT secret_encrypted, key_hint FROM connections")
+        assert rows, "expected at least the demo provider"
+        for row in rows:
+            assert row["secret_encrypted"] == "", "a credential was stored"
+            assert row["key_hint"] == ""
 
-    def test_rotating_a_key_replaces_the_stored_value(self, client):
-        code, body = client.post("/api/connections", {
-            "name": "rotate", "kind": "openai-compatible",
-            "base_url": f"https://api5.example.com/{uuid.uuid4().hex[:8]}/v1", "api_key": "sk-old-key-000000"})
-        conn_id = body["data"]["id"]
-        code, body = client.post(f"/api/connections/{conn_id}/rotate-key",
-                                 {"api_key": SECRET})
-        assert code == 200, body
-        row = store.row("SELECT secret_encrypted, key_hint, status FROM connections "
-                        "WHERE id=?", (conn_id,))
-        assert crypto.decrypt(row["secret_encrypted"]) == SECRET
-        assert "sk-o…0000" == row["key_hint"] or row["key_hint"].endswith("5b4a")
-        # A new key means the previous test result no longer applies.
-        assert row["status"] == "untested"
+    def test_an_api_key_is_not_readable_from_any_endpoint(self, client, mock_connection):
+        """A configured model's key must not appear in any JSON response."""
+        import os
+
+        os.environ["GPT_IMAGE_2_5_API_KEY"] = "sk-super-secret-probe-value"
+        try:
+            from app.services import sync
+
+            sync.sync_from_env()
+            for path in ("/api/models", "/api/providers", "/api/catalog",
+                         "/api/models?include_disabled=true"):
+                code, body = client.get(path)
+                assert code == 200, path
+                assert "sk-super-secret-probe-value" not in str(body), (
+                    f"{path} leaked the key")
+        finally:
+            os.environ.pop("GPT_IMAGE_2_5_API_KEY", None)
+            from app.services import sync
+
+            sync.sync_from_env()
 
     def test_a_key_never_reaches_the_log(self, client):
-        """The request logger records the request line, never headers."""
-        import logging
-        from app.web import server as server_module
+        """The value must not be logged, whatever the provider does with it."""
+        import os
+        import tempfile
 
-        records = []
+        from app import store
 
-        class Capture(logging.Handler):
-            def emit(self, record):
-                records.append(record.getMessage())
-
-        handler = Capture()
-        logger = logging.getLogger("studio.http")
-        logger.addHandler(handler)
+        probe = "sk-log-probe-abcdef123456"
+        os.environ["GPT_IMAGE_2_5_API_KEY"] = probe
         try:
-            client.post("/api/connections", {
-                "name": "log check", "kind": "openai-compatible",
-                "base_url": f"https://api6.example.com/{uuid.uuid4().hex[:8]}/v1", "api_key": SECRET})
+            from app.services import sync
+
+            sync.sync_from_env()
+            client.get("/api/catalog")
+            client.get("/api/models")
         finally:
-            logger.removeHandler(handler)
-        joined = "\n".join(records)
-        assert SECRET not in joined, "the key appeared in a log line"
-        assert "Authorization" not in joined
+            os.environ.pop("GPT_IMAGE_2_5_API_KEY", None)
+            from app.services import sync
+
+            sync.sync_from_env()
+
+        # Nothing in the database holds it either.
+        dumped = str(store.rows("SELECT * FROM models")) + str(
+            store.rows("SELECT * FROM connections"))
+        assert probe not in dumped
+
+
+class TestEncryptionStillWorks:
+    """The crypto module stays: it encrypts the one thing that can still be a secret.
+
+    It is no longer on the BYOK path, but a future feature that stores a secret must have
+    somewhere safe to put it, and deleting a working, tested primitive to satisfy a
+    refactor would be its own mistake.
+    """
+
+    def test_a_key_round_trips(self):
+        from app import crypto
+
+        sealed = crypto.encrypt("hello-world")
+        assert sealed != "hello-world"
+        assert crypto.decrypt(sealed) == "hello-world"

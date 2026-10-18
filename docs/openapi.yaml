@@ -3,7 +3,7 @@ openapi: 3.0.3
 info:
   title: Prompt Studio API
   version: 1.0.0
-  description: "A model-agnostic AI creative platform with BYOK/BYOM connections.\n\nEvery JSON response is either `{\"data\": ...}` or `{\"error\": {\"code\", \"message\", \"hint?\"}}`. The error codes are a closed set (see `app/errors.py`), so a client can branch on them."
+  description: "A model-agnostic AI creative platform. Credentials are environment variables, never stored per user: a model exists because `<PREFIX>_API_KEY`, `<PREFIX>_MODEL` and `<PREFIX>_API_URL` are set.\\n\\nEvery JSON response is either `{\"data\": ...}` or `{\"error\": {\"code\", \"message\", \"hint?\"}}`. The error codes are a closed set (see `app/errors.py`), so a client can branch on them."
 servers:
   - url: "http://127.0.0.1:8765"
 tags:
@@ -245,7 +245,7 @@ paths:
       summary: GET /api/catalog
       operationId: catalog_index
       tags:
-        - Other
+        - Models
       responses:
         200:
           description: Success
@@ -264,7 +264,7 @@ paths:
       summary: POST /api/catalog/seed
       operationId: catalog_seed
       tags:
-        - Other
+        - Models
       requestBody:
         required: true
         content:
@@ -371,245 +371,6 @@ paths:
             type: string
       responses:
         200:
-          description: Success
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Success"
-        400:
-          "$ref": "#/components/responses/BadRequest"
-        404:
-          "$ref": "#/components/responses/NotFound"
-        500:
-          "$ref": "#/components/responses/InternalError"
-  /api/connections:
-    get:
-      summary: List connections (keys are masked)
-      operationId: list_connections
-      tags:
-        - Connections
-      responses:
-        200:
-          description: Success
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Success"
-        400:
-          "$ref": "#/components/responses/BadRequest"
-        404:
-          "$ref": "#/components/responses/NotFound"
-        500:
-          "$ref": "#/components/responses/InternalError"
-    post:
-      summary: Create a connection (BYOK)
-      operationId: create_connection
-      tags:
-        - Connections
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        201:
-          description: Success
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Success"
-        400:
-          "$ref": "#/components/responses/BadRequest"
-        404:
-          "$ref": "#/components/responses/NotFound"
-        500:
-          "$ref": "#/components/responses/InternalError"
-  /api/connections/{connection_id}:
-    get:
-      summary: One connection, key masked
-      operationId: get_connection
-      tags:
-        - Connections
-      parameters:
-        - name: connection_id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        200:
-          description: Success
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Success"
-        400:
-          "$ref": "#/components/responses/BadRequest"
-        404:
-          "$ref": "#/components/responses/NotFound"
-        500:
-          "$ref": "#/components/responses/InternalError"
-    patch:
-      summary: Rename, re-key or change the base URL
-      operationId: update_connection
-      tags:
-        - Connections
-      parameters:
-        - name: connection_id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        200:
-          description: Success
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Success"
-        400:
-          "$ref": "#/components/responses/BadRequest"
-        404:
-          "$ref": "#/components/responses/NotFound"
-        500:
-          "$ref": "#/components/responses/InternalError"
-    delete:
-      summary: Delete a connection and its secret
-      operationId: delete_connection
-      tags:
-        - Connections
-      parameters:
-        - name: connection_id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        200:
-          description: Success
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Success"
-        400:
-          "$ref": "#/components/responses/BadRequest"
-        404:
-          "$ref": "#/components/responses/NotFound"
-        500:
-          "$ref": "#/components/responses/InternalError"
-  /api/connections/{connection_id}/models:
-    get:
-      summary: Models the provider lists (nothing stored)
-      operationId: provider_models
-      tags:
-        - Connections
-      parameters:
-        - name: connection_id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        200:
-          description: Success
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Success"
-        400:
-          "$ref": "#/components/responses/BadRequest"
-        404:
-          "$ref": "#/components/responses/NotFound"
-        500:
-          "$ref": "#/components/responses/InternalError"
-    post:
-      summary: Register models with their capabilities
-      operationId: register_models
-      tags:
-        - Connections
-      parameters:
-        - name: connection_id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        201:
-          description: Success
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Success"
-        400:
-          "$ref": "#/components/responses/BadRequest"
-        404:
-          "$ref": "#/components/responses/NotFound"
-        500:
-          "$ref": "#/components/responses/InternalError"
-  /api/connections/{connection_id}/rotate-key:
-    post:
-      summary: Replace the stored key
-      operationId: rotate_key
-      tags:
-        - Connections
-      parameters:
-        - name: connection_id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        201:
-          description: Success
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Success"
-        400:
-          "$ref": "#/components/responses/BadRequest"
-        404:
-          "$ref": "#/components/responses/NotFound"
-        500:
-          "$ref": "#/components/responses/InternalError"
-  /api/connections/{connection_id}/test:
-    post:
-      summary: Call the provider to prove the connection works
-      operationId: test_connection
-      tags:
-        - Connections
-      parameters:
-        - name: connection_id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        201:
           description: Success
           content:
             application/json:
@@ -1352,6 +1113,50 @@ paths:
             type: string
       responses:
         200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Success"
+        400:
+          "$ref": "#/components/responses/BadRequest"
+        404:
+          "$ref": "#/components/responses/NotFound"
+        500:
+          "$ref": "#/components/responses/InternalError"
+  /api/providers:
+    get:
+      summary: The provider endpoints the configured models use
+      operationId: list_providers
+      tags:
+        - Models
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Success"
+        400:
+          "$ref": "#/components/responses/BadRequest"
+        404:
+          "$ref": "#/components/responses/NotFound"
+        500:
+          "$ref": "#/components/responses/InternalError"
+  /api/sync:
+    post:
+      summary: Re-read the environment and update the model registry
+      operationId: sync_models
+      tags:
+        - Models
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        201:
           description: Success
           content:
             application/json:

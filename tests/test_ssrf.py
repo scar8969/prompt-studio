@@ -120,16 +120,51 @@ class TestResolutionIsPinned:
         assert exc.value.code == "blocked_url"
 
 
-class TestThroughTheApi:
-    @pytest.mark.parametrize("base_url", [
+class TestThroughTheEnvironment:
+    """The guard follows the URL to its new home: the environment.
+
+    Under BYOK a private base URL was refused at the point a user typed it. The URL now
+    arrives from `<PREFIX>_API_URL`, so the same guard has to fire when a model is
+    resolved for a job — otherwise removing BYOK would have quietly removed the SSRF
+    protection with it.
+    """
+
+    @pytest.mark.parametrize("api_url", [
         "http://127.0.0.1:9000/v1",
         "http://169.254.169.254/latest",
         "http://10.1.2.3/v1",
-        "file:///etc/passwd",
     ])
-    def test_creating_a_connection_refuses_it(self, client, base_url):
-        code, body = client.post("/api/connections", {
-            "name": "nope", "kind": "openai-compatible",
-            "base_url": base_url, "api_key": "sk-test-123456789"})
-        assert code == 400, body
-        assert body["error"]["code"] in ("blocked_url", "invalid_base_url")
+    def test_a_private_api_url_is_refused_when_resolving_a_model(self, api_url, monkeypatch):
+        import os
+
+        from app import store
+        from app.services import connections as connection_service
+
+        monkeypatch.setenv("GPT_IMAGE_2_5_API_KEY", "sk-test")
+        monkeypatch.setenv("GPT_IMAGE_2_5_API_URL", api_url)
+        monkeypatch.delenv("GPT_IMAGE_2_5_MODEL", raising=False)
+        monkeypatch.setenv("APP_ENV", "production")     # production never allows private
+        monkeypatch.setenv("ALLOW_PRIVATE_UPSTREAM", "0")
+
+        from app.services import sync
+
+        sync.sync_from_env()
+        model = connection_service.get_model_by_env_prefix("GPT_IMAGE_2_5")
+        with pytest.raises(ApiError) as exc:
+            connection_service.adapter_and_connection(model)
+        assert exc.value.code in ("blocked_url", "invalid_base_url")
+
+    def test_the_guard_still_refuses_a_non_http_scheme(self, monkeypatch):
+        """`file://` must not become a readable file just because it came from env."""
+        from app.services import connections as connection_service
+
+        monkeypatch.setenv("GPT_IMAGE_2_5_API_KEY", "sk-test")
+        monkeypatch.setenv("GPT_IMAGE_2_5_API_URL", "file:///etc/passwd")
+        monkeypatch.delenv("GPT_IMAGE_2_5_MODEL", raising=False)
+        from app.services import sync
+
+        sync.sync_from_env()
+        model = connection_service.get_model_by_env_prefix("GPT_IMAGE_2_5")
+        with pytest.raises(ApiError) as exc:
+            connection_service.adapter_and_connection(model)
+        assert exc.value.code in ("blocked_url", "invalid_base_url")

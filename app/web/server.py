@@ -204,6 +204,16 @@ class StudioHandler(BaseHTTPRequestHandler):
 
         handler_name, params, allowed = router.resolve(method, path)
         if handler_name is None:
+            # Drain the request body before answering. A POST to an unknown route that
+            # answers 404 without reading its body leaves unread bytes in the socket, and
+            # the client sees a connection reset instead of the 404 — intermittently,
+            # depending on how much was sent and whether the server closed first. The
+            # error must be delivered, not aborted.
+            if method in ("POST", "PATCH", "PUT"):
+                try:
+                    self._read_raw()
+                except Exception:                              # noqa: BLE001
+                    pass
             if allowed:
                 raise ApiError("method_not_allowed",
                                f"{path} does not accept {method}.",
@@ -281,6 +291,15 @@ def build_server(host: str = HOST, port: int = PORT) -> ThreadingHTTPServer:
 
     ensure_dirs()
     store.init()
+    # The environment is the source of the model registry, so it is read on every boot.
+    # A model whose key was removed on Vercel is disabled here; one that was added
+    # appears. Nothing is deleted: jobs reference models by id.
+    try:
+        from ..services import sync
+
+        sync.sync_from_env()
+    except Exception:                                          # noqa: BLE001
+        log.exception("could not sync models from the environment")
     start_workers()
     requeue_unfinished()
     reap_stale()

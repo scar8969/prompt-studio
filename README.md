@@ -9,23 +9,36 @@ what the provider actually reported, so nothing is a button that fails when clic
 
 ## Why this shape
 
-This is a **BYOK/BYOM** platform. There is no shared provider key: each connection holds
-its own credential, encrypted at rest, and the server never returns it. That drives four
-decisions worth knowing up front:
+**No BYOK. Credentials are environment variables.** There is no screen for entering a
+provider key, no encrypted credential column, and no endpoint that accepts one. A model
+exists because the deployment's environment configures it, with three variables:
+
+```bash
+NANO_BANANA_2_API_KEY=...                        # the credential
+NANO_BANANA_2_MODEL=gemini-3-pro-image-preview   # the model name to send
+NANO_BANANA_2_API_URL=https://.../v1beta         # the endpoint
+```
+
+`<PREFIX>` is the model's job-set id uppercased. All 59 models are listed in
+`.env.example` with their three variables; `python -m app.cli catalog` prints what is
+configured and what is missing. On Vercel this is Project → Settings → Environment
+Variables, which means a key is rotated where it is issued and never transits the app.
+
+That drives four decisions worth knowing up front:
 
 | Decision | Why |
 |---|---|
-| Keys are encrypted with `APP_ENCRYPTION_KEY`, never logged, never serialised | A credential the server can hand back is a credential it can leak |
-| Base URLs are SSRF-checked, and the **resolved IP is pinned** for the connection | Check-then-connect is a time-of-check/time-of-use hole; validating a hostname and then re-resolving it is not a guard |
-| A model's capabilities come from the provider's listing, not from client JSON | A capability is an authorization fact, so it must not be user-supplied |
+| A credential is read from the environment at call time, never stored | Nothing to leak, nothing to decrypt, and rotation takes effect on the next request |
+| Base URLs are SSRF-checked, and the **resolved IP is pinned** | The URL now arrives from the environment, so the guard moved with it — check-then-connect is a time-of-check/time-of-use hole |
+| A model's capabilities come from its catalogue row, not from request JSON | A capability is an authorization fact, so it must not be user-supplied |
 | A cost is stored only when a published rate is known, else `cost_source=unknown` | An invented price in a usage record is something people make spending decisions on |
 
 ## Quick start
 
 ```bash
-# 1. Configure
+# 1. Configure — fill in the three variables for each model you want
 cp .env.example .env
-python -m app.cli init-key        # paste the output into APP_ENCRYPTION_KEY
+#    <PREFIX>_API_KEY / _MODEL / _API_URL. Nothing else is required to run.
 
 # 2. Run
 python -m app.web.server          # or: python run_studio.py
@@ -47,13 +60,10 @@ whether anything is unsafe for production — without starting a server.
 
 ## The flow
 
-1. **Connections** — base URL, API key, optional name. The key is encrypted before it is
-   stored and only ever appears masked (`sk-a…7890`).
-2. **Test** — a real request to `/models`. An untested connection stays `untested`; it is
-   never marked good because the URL parsed.
-3. **Register models** — pick from what the provider lists; each one stores the
-   capabilities and parameters it was discovered with.
-4. **Studios** — Image and Video list only models whose capabilities match, and only offer
+1. **Models** — appear because the environment configures them: a key, a model name and
+   an API URL per model. There is no form and no stored credential; the Models view is
+   read-only and shows which are configured.
+2. **Studios** — Image and Video list only models whose capabilities match, and only offer
    the parameters that model documents. A model without `video.image_to_video` gets no
    starting-frame control.
 5. **Generate** — `POST /api/generations/images` returns `202` with a job; a worker pool
@@ -99,12 +109,8 @@ closed set in `app/errors.py`.
 GET    /api/health
 GET    /api/capabilities
 
-GET    /api/connections                  POST   /api/connections
-GET    /api/connections/{id}             PATCH  /api/connections/{id}
-DELETE /api/connections/{id}
-POST   /api/connections/{id}/test
-POST   /api/connections/{id}/rotate-key
-GET    /api/connections/{id}/models      POST   /api/connections/{id}/models
+GET    /api/providers                    POST   /api/sync
+GET    /api/catalog
 
 GET    /api/catalog                      every model Higgsfield offers (59)
 POST   /api/catalog/seed                 register the configured ones
@@ -198,7 +204,8 @@ The app runs unchanged on Vercel: three Python functions (`api/page.py` for the 
 ```bash
 vercel link            # project: whatever you name it
 vercel pull --environment production
-vercel env add APP_ENCRYPTION_KEY      # python -m app.cli init-key prints one
+# per model: <PREFIX>_API_KEY, <PREFIX>_MODEL, <PREFIX>_API_URL
+vercel env add NANO_BANANA_2_API_KEY
 vercel env add DATABASE_URL            # Postgres (Neon, Supabase, Vercel Postgres)
 vercel env add BLOB_READ_WRITE_TOKEN   # Storage → Blob, then the connection string
 vercel env add CRON_SECRET             # any long random string

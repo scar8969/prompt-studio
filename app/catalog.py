@@ -38,6 +38,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "cinematic_studio_2_5",
         "env": "CINEMATIC_STUDIO_2_5",
         "modality": "image",
+        "api_url": "",
         "capabilities": ["image.generate", "image.reference"],
         "parameters": {"aspect_ratio": ["1:1", "3:2", "2:3", "4:3", "3:4", "4:5", "5:4", "16:9", "9:16", "21:9"], "batch_size": ["1"], "image_references": ["UUID or path"], "mode": ["auto"], "resolution": ["1k", "2k", "4k"]},
     },
@@ -48,6 +49,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "flux_2",
         "env": "FLUX_2",
         "modality": "image",
+        "api_url": "",
         "capabilities": ["image.generate", "image.reference"],
         "parameters": {"aspect_ratio": ["1:1", "4:3", "3:4", "16:9", "9:16"], "image_references": ["UUID or path"], "resolution": ["1k", "2k"], "variant": ["pro", "flex", "max"]},
     },
@@ -58,6 +60,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "flux_kontext",
         "env": "FLUX_KONTEXT",
         "modality": "image",
+        "api_url": "",
         "capabilities": ["image.generate", "image.reference"],
         "parameters": {"aspect_ratio": ["1:1", "4:3", "3:4", "16:9", "9:16"], "image_references": ["UUID or path"]},
     },
@@ -68,6 +71,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "gpt_image_2",
         "env": "GPT_IMAGE_2",
         "modality": "image",
+        "api_url": "https://api.openai.com/v1",
         "capabilities": ["image.generate", "image.reference", "image.edit"],
         "parameters": {"aspect_ratio": ["auto", "1:1", "4:3", "3:4", "16:9", "21:9", "9:16", "3:2", "2:3", "4:5", "5:4"], "background": ["auto", "opaque", "transparent"], "image_references": ["UUID or path"], "is_inpaint": ["boolean; requires a mask and at least one reference image"], "quality": ["low", "medium", "high"], "resolution": ["1k", "2k", "4k"]},
     },
@@ -78,6 +82,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "gpt_image_2_5",
         "env": "GPT_IMAGE_2_5",
         "modality": "image",
+        "api_url": "https://api.openai.com/v1",
         "capabilities": ["image.generate", "image.reference"],
         "parameters": {"aspect_ratio": ["auto", "1:1", "3:2", "2:3", "4:3", "3:4", "16:9", "9:16", "21:9", "27:16", "16:27", "9:8", "8:9", "4:5", "5:4"], "background": ["auto", "opaque", "transparent"], "image_references": ["UUID or path; at most 16"], "quality": ["low", "medium", "high", "xhigh", "max"], "resolution": ["1k", "2k", "4k"], "variant": ["flare", "sunburst"]},
     },
@@ -88,6 +93,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "grok_image",
         "env": "GROK_IMAGE",
         "modality": "image",
+        "api_url": "https://api.x.ai/v1",
         "capabilities": ["image.generate", "image.reference"],
         "parameters": {"aspect_ratio": ["1:1", "auto", "1:2", "2:1", "3:2", "2:3", "4:3", "3:4", "16:9", "9:16"], "image_references": ["UUID or path"], "mode": ["std", "quality"], "resolution": ["1k", "2k"]},
     },
@@ -98,6 +104,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "image_auto",
         "env": "IMAGE_AUTO",
         "modality": "image",
+        "api_url": "",
         "capabilities": ["image.generate", "image.reference"],
         "parameters": {"aspect_ratio": ["1:1", "4:3", "3:4", "16:9", "9:16"], "image_references": ["UUID or path"]},
     },
@@ -108,6 +115,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "image_background_remover",
         "env": "IMAGE_BACKGROUND_REMOVER",
         "modality": "image",
+        "api_url": "",
         "capabilities": ["image.generate", "image.reference", "image.edit"],
         "parameters": {"image_references": ["UUID or path"]},
     },
@@ -118,6 +126,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "kling_omni_image",
         "env": "KLING_OMNI_IMAGE",
         "modality": "image",
+        "api_url": "",
         "capabilities": ["image.generate", "image.reference"],
         "parameters": {"aspect_ratio": ["1:1", "auto", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9"], "image_references": ["UUID or path"], "resolution": ["1k", "2k"]},
     },
@@ -128,6 +137,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "marketing_studio_image",
         "env": "MARKETING_STUDIO_IMAGE",
         "modality": "image",
+        "api_url": "",
         "capabilities": ["image.generate", "image.reference"],
         "parameters": {"aspect_ratio": ["auto", "1:1", "3:2", "2:3", "4:3", "3:4", "4:5", "5:4", "9:16", "16:9", "21:9"], "image_references": ["UUID or path"], "resolution": ["1k", "2k", "4k"]},
     },
@@ -138,6 +148,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "nano_banana",
         "env": "NANO_BANANA",
         "modality": "image",
+        "api_url": "https://generativelanguage.googleapis.com/v1beta",
         "capabilities": ["image.generate", "image.reference"],
         "parameters": {"aspect_ratio": ["1:1", "3:2", "2:3", "4:3", "3:4", "4:5", "5:4", "9:16", "16:9", "21:9"], "image_references": ["UUID or path"]},
     },
@@ -148,6 +159,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "nano_banana_2",
         "env": "NANO_BANANA_2",
         "modality": "image",
+        "api_url": "https://generativelanguage.googleapis.com/v1beta",
         "capabilities": ["image.generate", "image.reference"],
         "parameters": {"aspect_ratio": ["1:1", "3:2", "2:3", "4:3", "3:4", "4:5", "5:4", "9:16", "16:9", "21:9"], "image_references": ["UUID or path"], "resolution": ["1k", "2k", "4k"]},
     },
@@ -158,6 +170,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "nano_banana_2_lite",
         "env": "NANO_BANANA_2_LITE",
         "modality": "image",
+        "api_url": "https://generativelanguage.googleapis.com/v1beta",
         "capabilities": ["image.generate", "image.reference"],
         "parameters": {"aspect_ratio": ["auto", "1:1", "3:2", "2:3", "4:3", "3:4", "4:5", "5:4", "9:16", "16:9", "21:9"], "image_references": ["UUID or path"], "resolution": ["1k"], "thinking": ["MINIMAL", "HIGH"]},
     },
@@ -168,6 +181,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "nano_banana_flash",
         "env": "NANO_BANANA_FLASH",
         "modality": "image",
+        "api_url": "https://generativelanguage.googleapis.com/v1beta",
         "capabilities": ["image.generate", "image.reference"],
         "parameters": {"aspect_ratio": ["1:1", "3:2", "2:3", "4:3", "3:4", "4:5", "5:4", "9:16", "16:9", "21:9"], "image_references": ["UUID or path"], "resolution": ["1k", "2k", "4k"]},
     },
@@ -178,6 +192,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "openai_hazel",
         "env": "OPENAI_HAZEL",
         "modality": "image",
+        "api_url": "https://api.openai.com/v1",
         "capabilities": ["image.generate", "image.reference"],
         "parameters": {"aspect_ratio": ["1:1", "3:2", "2:3", "auto"], "image_references": ["UUID or path"], "quality": ["low", "medium", "high"]},
     },
@@ -188,6 +203,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "outpaint",
         "env": "OUTPAINT",
         "modality": "image",
+        "api_url": "",
         "capabilities": ["image.generate", "image.reference", "image.edit"],
         "parameters": {"aspect_ratio": ["auto", "1:1", "3:2", "2:3", "4:3", "3:4", "4:5", "5:4", "9:16", "16:9", "21:9"], "image_references": ["UUID or path"]},
     },
@@ -198,6 +214,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "recraft_v4_1",
         "env": "RECRAFT_V4_1",
         "modality": "image",
+        "api_url": "",
         "capabilities": ["image.generate"],
         "parameters": {"aspect_ratio": ["1:1", "3:4", "4:3", "4:5", "5:4", "3:2", "2:3", "16:9", "9:16"], "colors": ["array"], "model_type": ["standard", "vector", "utility", "utility_vector"], "resolution": ["1k", "2k"]},
     },
@@ -208,6 +225,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "seedream_v4_5",
         "env": "SEEDREAM_V4_5",
         "modality": "image",
+        "api_url": "",
         "capabilities": ["image.generate", "image.reference"],
         "parameters": {"aspect_ratio": ["1:1", "4:3", "16:9", "3:2", "21:9", "3:4", "9:16", "2:3"], "image_references": ["UUID or path"], "quality": ["basic", "high"]},
     },
@@ -218,6 +236,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "seedream_v5_lite",
         "env": "SEEDREAM_V5_LITE",
         "modality": "image",
+        "api_url": "",
         "capabilities": ["image.generate", "image.reference"],
         "parameters": {"aspect_ratio": ["1:1", "4:3", "3:4", "16:9", "9:16"], "image_references": ["UUID or path"], "quality": ["basic", "high"]},
     },
@@ -228,6 +247,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "soul_cast",
         "env": "SOUL_CAST",
         "modality": "image",
+        "api_url": "",
         "capabilities": ["image.generate"],
         "parameters": {"aspect_ratio": ["16:9"], "budget": ["50"]},
     },
@@ -238,6 +258,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "soul_cinematic",
         "env": "SOUL_CINEMATIC",
         "modality": "image",
+        "api_url": "",
         "capabilities": ["image.generate", "image.reference"],
         "parameters": {"aspect_ratio": ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9"], "image_references": ["UUID or path"], "quality": ["1.5k", "2k"], "soul_id": ["Soul UUID"]},
     },
@@ -248,6 +269,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "soul_location",
         "env": "SOUL_LOCATION",
         "modality": "image",
+        "api_url": "",
         "capabilities": ["image.generate"],
         "parameters": {"aspect_ratio": ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9", "9:21"]},
     },
@@ -258,6 +280,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "text2image_soul_v2",
         "env": "TEXT2IMAGE_SOUL_V2",
         "modality": "image",
+        "api_url": "",
         "capabilities": ["image.generate", "image.reference"],
         "parameters": {"aspect_ratio": ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"], "image_references": ["UUID or path"], "quality": ["1.5k", "2k"], "soul_id": ["Soul UUID"]},
     },
@@ -268,6 +291,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "z_image",
         "env": "Z_IMAGE",
         "modality": "image",
+        "api_url": "",
         "capabilities": ["image.generate"],
         "parameters": {"aspect_ratio": ["1:1", "4:3", "3:4", "16:9", "9:16"]},
     },
@@ -278,6 +302,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "brain_activity",
         "env": "BRAIN_ACTIVITY",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async", "video.transform"],
         "parameters": {"video": ["UUID or path"]},
     },
@@ -288,6 +313,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "cinematic_studio_3_0",
         "env": "CINEMATIC_STUDIO_3_0",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async", "video.image_to_video", "video.transform", "video.audio"],
         "parameters": {"aspect_ratio": ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"], "audio_references": ["UUID or path"], "batch_size": ["1"], "duration": ["5"], "end_image": ["UUID or path"], "enhance_prompt": ["false"], "generate_audio": ["false"], "genre": ["auto", "action", "horror", "comedy", "noir", "drama", "epic"], "image_references": ["UUID or path"], "multi_prompt": ["array"], "multi_shot_mode": ["auto", "custom"], "multi_shots": ["false"], "prompt_language": ["en", "zh"], "resolution": ["480p", "720p", "1080p", "4k"], "speedramp": ["auto", "linear", "slowmo", "speedup", "fast_to_slowmo", "slowmo_to_fast", "super_slowmo", "impact"], "start_image": ["UUID or path"], "video_references": ["UUID or path"]},
     },
@@ -298,6 +324,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "cinematic_studio_video",
         "env": "CINEMATIC_STUDIO_VIDEO",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async", "video.image_to_video", "video.audio"],
         "parameters": {"aspect_ratio": ["1:1", "4:3", "3:4", "16:9", "9:16"], "duration": ["5", "10"], "end_image": ["UUID or path"], "slow_motion": ["false"], "sound": ["true"], "start_image": ["UUID or path"]},
     },
@@ -308,6 +335,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "cinematic_studio_video_3_5",
         "env": "CINEMATIC_STUDIO_VIDEO_3_5",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async", "video.image_to_video", "video.transform", "video.audio"],
         "parameters": {"aspect_ratio": ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"], "audio_references": ["UUID or path"], "camera_style": ["classic_static", "silent_machine", "one_take", "epic_scale", "intimate_observer", "impossible_camera", "documentary_snap", "raw_chaos", "dreamy_flow"], "color_grading": ["naturalistic_clean", "bleached_warm", "hyper_neon", "teal_orange_epic", "sodium_decay", "cold_steel", "bleach_bypass", "classic_bw"], "duration": ["15"], "end_image": ["UUID or path"], "enhance_prompt": ["false"], "generate_audio": ["false"], "genre": ["auto", "action", "horror", "comedy", "noir", "drama", "epic"], "image_references": ["UUID or path"], "light_scheme": ["soft_cross", "contre_jour", "overhead_fall", "window", "practicals", "silhouette"], "multi_prompt": ["array"], "multi_shot_mode": ["auto", "custom"], "multi_shots": ["false"], "prompt_language": ["en", "zh"], "resolution": ["480p", "720p", "1080p"], "start_image": ["UUID or path"], "video_references": ["UUID or path"]},
     },
@@ -318,6 +346,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "cinematic_studio_video_v2",
         "env": "CINEMATIC_STUDIO_VIDEO_V2",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async", "video.image_to_video", "video.audio"],
         "parameters": {"aspect_ratio": ["1:1", "4:3", "3:4", "16:9", "9:16"], "batch_size": ["1"], "cfg_scale": ["number"], "duration": ["5"], "end_image": ["UUID or path"], "genre": ["auto", "action", "horror", "comedy", "western", "suspense", "intimate", "spectacle"], "image_references": ["UUID or path"], "kling_element_ids": ["array"], "mode": ["pro", "std"], "multi_prompt": ["array"], "multi_shot_mode": ["auto", "custom"], "multi_shots": ["false"], "sound": ["on", "off"], "speedramp": ["auto", "custom", "linear", "slowmo", "speedup", "impact"], "start_image": ["UUID or path"]},
     },
@@ -328,6 +357,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "gemini_omni",
         "env": "GEMINI_OMNI",
         "modality": "video",
+        "api_url": "https://generativelanguage.googleapis.com/v1beta",
         "capabilities": ["video.generate", "video.async", "video.transform"],
         "parameters": {"aspect_ratio": ["16:9", "9:16"], "duration": ["4", "6", "8", "10"], "image_references": ["UUID or path"], "resolution": ["720p"], "video_references": ["UUID or path"]},
     },
@@ -338,6 +368,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "grok_video",
         "env": "GROK_VIDEO",
         "modality": "video",
+        "api_url": "https://api.x.ai/v1",
         "capabilities": ["video.generate", "video.async", "video.image_to_video"],
         "parameters": {"aspect_ratio": ["16:9", "9:16", "1:1"], "duration": ["5"], "start_image": ["UUID or path"]},
     },
@@ -348,6 +379,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "grok_video_v15",
         "env": "GROK_VIDEO_V15",
         "modality": "video",
+        "api_url": "https://api.x.ai/v1",
         "capabilities": ["video.generate", "video.async", "video.image_to_video"],
         "parameters": {"duration": ["5"], "resolution": ["480p", "720p"], "start_image": ["UUID or path"]},
     },
@@ -358,6 +390,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "kling2_6",
         "env": "KLING2_6",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async", "video.image_to_video", "video.audio"],
         "parameters": {"aspect_ratio": ["16:9", "9:16", "1:1"], "duration": ["5", "10"], "sound": ["true"], "start_image": ["UUID or path"]},
     },
@@ -368,6 +401,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "kling3_0",
         "env": "KLING3_0",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async", "video.image_to_video", "video.audio"],
         "parameters": {"aspect_ratio": ["16:9", "9:16", "1:1"], "duration": ["5"], "end_image": ["UUID or path"], "mode": ["std", "pro", "4k"], "sound": ["on", "off"], "start_image": ["UUID or path"]},
     },
@@ -378,6 +412,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "kling3_0_turbo",
         "env": "KLING3_0_TURBO",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async", "video.image_to_video"],
         "parameters": {"aspect_ratio": ["16:9", "9:16", "1:1"], "duration": ["5"], "resolution": ["720p", "1080p"], "start_image": ["UUID or path"]},
     },
@@ -388,6 +423,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "marketing_studio_video",
         "env": "MARKETING_STUDIO_VIDEO",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async", "video.image_to_video", "video.audio"],
         "parameters": {"ad_reference_id": ["ad-reference UUID"], "aspect_ratio": ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"], "avatar_ids": ["array"], "avatars": ["array"], "duration": ["15"], "end_image": ["UUID or path"], "generate_audio": ["false"], "hook_id": ["hook UUID"], "image_references": ["UUID or path"], "mode": ["ugc"], "product_ids": ["array"], "resolution": ["480p", "720p", "1080p"], "setting_id": ["setting UUID"], "specific_mode": ["default", "web_product", "from_storyboard"], "start_image": ["UUID or path"], "storyboard_id": ["storyboard UUID"], "web_product_ids": ["array"], "web_product_type": ["desktop", "mobile"]},
     },
@@ -398,6 +434,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "minimax_hailuo",
         "env": "MINIMAX_HAILUO",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async", "video.image_to_video"],
         "parameters": {"duration": ["6", "10"], "end_image": ["UUID or path"], "resolution": ["512", "768", "1080"], "start_image": ["UUID or path"], "variant": ["minimax", "minimax-fast", "minimax-2.3", "minimax-2.3-fast"]},
     },
@@ -408,6 +445,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "seedance1_5",
         "env": "SEEDANCE1_5",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async", "video.image_to_video", "video.audio"],
         "parameters": {"aspect_ratio": ["auto", "16:9", "9:16", "4:3", "3:4", "1:1", "21:9"], "duration": ["4", "8", "12"], "end_image": ["UUID or path"], "generate_audio": ["true"], "resolution": ["480p", "720p", "1080p"], "start_image": ["UUID or path"]},
     },
@@ -418,6 +456,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "seedance_2_0",
         "env": "SEEDANCE_2_0",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async", "video.image_to_video", "video.transform", "video.audio"],
         "parameters": {"aspect_ratio": ["auto", "16:9", "9:16", "4:3", "3:4", "1:1", "21:9"], "audio_references": ["UUID or path"], "bitrate_mode": ["standard", "high"], "duration": ["5"], "end_image": ["UUID or path"], "generate_audio": ["true"], "genre": ["auto", "action", "horror", "comedy", "noir", "drama", "epic"], "image_references": ["UUID or path"], "mode": ["std", "fast"], "resolution": ["480p", "720p", "1080p", "4k"], "start_image": ["UUID or path"], "video_references": ["UUID or path"]},
     },
@@ -428,6 +467,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "seedance_2_0_mini",
         "env": "SEEDANCE_2_0_MINI",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async", "video.image_to_video", "video.transform", "video.audio"],
         "parameters": {"aspect_ratio": ["auto", "16:9", "9:16", "4:3", "3:4", "1:1", "21:9"], "audio_references": ["UUID or path"], "bitrate_mode": ["standard", "high"], "duration": ["5"], "end_image": ["UUID or path"], "generate_audio": ["true"], "genre": ["auto", "action", "horror", "comedy", "noir", "drama", "epic"], "image_references": ["UUID or path"], "resolution": ["480p", "720p"], "start_image": ["UUID or path"], "video_references": ["UUID or path"]},
     },
@@ -438,6 +478,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "veo3",
         "env": "VEO3",
         "modality": "video",
+        "api_url": "https://generativelanguage.googleapis.com/v1beta",
         "capabilities": ["video.generate", "video.async", "video.image_to_video"],
         "parameters": {"aspect_ratio": ["16:9", "9:16"], "start_image": ["UUID or path"], "variant": ["veo-3-preview", "veo-3-fast"]},
     },
@@ -448,6 +489,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "veo3_1",
         "env": "VEO3_1",
         "modality": "video",
+        "api_url": "https://generativelanguage.googleapis.com/v1beta",
         "capabilities": ["video.generate", "video.async", "video.image_to_video"],
         "parameters": {"aspect_ratio": ["16:9", "9:16"], "duration": ["4", "6", "8"], "quality": ["basic", "high", "ultra"], "start_image": ["UUID or path"], "variant": ["veo-3-1-preview", "veo-3-1-fast"]},
     },
@@ -458,6 +500,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "veo3_1_lite",
         "env": "VEO3_1_LITE",
         "modality": "video",
+        "api_url": "https://generativelanguage.googleapis.com/v1beta",
         "capabilities": ["video.generate", "video.async", "video.image_to_video", "video.audio"],
         "parameters": {"aspect_ratio": ["16:9", "9:16", "auto"], "duration": ["4", "6", "8"], "end_image": ["UUID or path"], "generate_audio": ["false"], "start_image": ["UUID or path"]},
     },
@@ -468,6 +511,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "video_background_remover",
         "env": "VIDEO_BACKGROUND_REMOVER",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async", "video.transform"],
         "parameters": {"video_references": ["UUID or path"]},
     },
@@ -478,6 +522,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "wan2_6",
         "env": "WAN2_6",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async", "video.transform", "video.audio"],
         "parameters": {"aspect_ratio": ["16:9", "9:16", "1:1"], "audio_references": ["UUID or path"], "duration": ["5", "10", "15"], "image_references": ["UUID or path"], "quality": ["720p", "1080p"], "video_references": ["UUID or path"]},
     },
@@ -488,6 +533,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "wan2_7",
         "env": "WAN2_7",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async", "video.image_to_video", "video.audio"],
         "parameters": {"aspect_ratio": ["16:9", "9:16", "1:1", "4:3", "3:4"], "audio_references": ["UUID or path"], "duration": ["5"], "end_image": ["UUID or path"], "resolution": ["720p", "1080p"], "start_image": ["UUID or path"]},
     },
@@ -498,6 +544,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "video_explainer",
         "env": "VIDEO_EXPLAINER",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async"],
         "parameters": {"aspect_ratio": ["16:9", "9:16"], "duration": ["20\u2013600", "multiple of 10"], "medias": ["JSON array via `@file`; up to 14 images/files"], "preset_id": ["UUID from `higgsfield preset list video-explainer"], "voice_id": ["voice ID from `higgsfield voices list"], "voice_type": ["preset", "element"]},
     },
@@ -508,6 +555,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "explainer_video",
         "env": "EXPLAINER_VIDEO",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async"],
         "parameters": {"height": ["even integer greater than 1"], "items": ["JSON array via `@file`; at least 2 items"], "subtitles": ["JSON object; font: `patrick", "caveat", "marker", "anton"], "width": ["even integer greater than 1"]},
     },
@@ -518,6 +566,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "3d_rigging",
         "env": "3D_RIGGING",
         "modality": "3d",
+        "api_url": "",
         "capabilities": ["3d.generate"],
         "parameters": {"enable_animation": ["false"], "height_meters": ["number"]},
     },
@@ -528,6 +577,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "image_to_3d",
         "env": "IMAGE_TO_3D",
         "modality": "3d",
+        "api_url": "",
         "capabilities": ["3d.generate"],
         "parameters": {"enable_animation": ["false"], "enable_rigging": ["false"], "image_references": ["UUID or path"], "pose_mode": ["a-pose", "t-pose"], "rigging_height_meters": ["number"], "should_texture": ["false"], "symmetry_mode": ["off", "auto", "on"], "topology": ["quad", "triangle"]},
     },
@@ -538,6 +588,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "multi_image_to_3d",
         "env": "MULTI_IMAGE_TO_3D",
         "modality": "3d",
+        "api_url": "",
         "capabilities": ["3d.generate"],
         "parameters": {"enable_animation": ["false"], "enable_rigging": ["false"], "image_references": ["UUID or path"], "pose_mode": ["a-pose", "t-pose"], "rigging_height_meters": ["number"], "should_texture": ["false"], "symmetry_mode": ["off", "auto", "on"], "topology": ["quad", "triangle"]},
     },
@@ -548,6 +599,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "sam_3_3d",
         "env": "SAM_3_3D",
         "modality": "3d",
+        "api_url": "",
         "capabilities": ["3d.generate"],
         "parameters": {"detection_threshold": ["number"], "export_textured_glb": ["true"], "image_references": ["UUID or path"]},
     },
@@ -558,6 +610,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "tripo_3d",
         "env": "TRIPO_3D",
         "modality": "3d",
+        "api_url": "",
         "capabilities": ["3d.generate"],
         "parameters": {"auto_size": ["false"], "geometry_quality": ["standard", "detailed"], "pbr": ["true"], "texture": ["true"], "texture_quality": ["standard", "detailed"]},
     },
@@ -568,6 +621,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "inworld_text_to_speech",
         "env": "INWORLD_TEXT_TO_SPEECH",
         "modality": "audio",
+        "api_url": "",
         "capabilities": ["audio.generate", "audio.speech"],
         "parameters": {"voice": ["113 built-in voices \u2014 run `higgsfield model get inworld_text_to_speech` for the list"]},
     },
@@ -578,6 +632,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "mirelo_text_to_audio",
         "env": "MIRELO_TEXT_TO_AUDIO",
         "modality": "audio",
+        "api_url": "",
         "capabilities": ["audio.generate", "audio.music"],
         "parameters": {"duration": ["number"]},
     },
@@ -588,6 +643,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "seed_audio",
         "env": "SEED_AUDIO",
         "modality": "audio",
+        "api_url": "",
         "capabilities": ["audio.generate", "audio.speech"],
         "parameters": {"audio_references": ["UUID or path"], "format": ["wav", "mp3", "pcm", "ogg_opus"], "image_references": ["UUID or path"], "loudness_rate": ["0"], "pitch_rate": ["0"], "sample_rate": ["8000", "16000", "24000", "32000", "44100", "48000"], "speech_rate": ["0"], "voice_type": ["preset", "element"]},
     },
@@ -598,6 +654,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "sonilo_music",
         "env": "SONILO_MUSIC",
         "modality": "audio",
+        "api_url": "",
         "capabilities": ["audio.generate", "audio.music"],
         "parameters": {"duration": ["number"]},
     },
@@ -608,6 +665,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "text2speech_v2",
         "env": "TEXT2SPEECH_V2",
         "modality": "audio",
+        "api_url": "",
         "capabilities": ["audio.generate", "audio.speech"],
         "parameters": {"variant": ["elevenlabs", "minimax", "seed_speech", "vibe_voice", "cozy_voice"], "voice_type": ["preset", "element"]},
     },
@@ -618,6 +676,7 @@ CATALOG: List[Dict[str, Any]] = [
         "job_set_type": "seedance_2_5",
         "env": "SEEDANCE_2_5",
         "modality": "video",
+        "api_url": "",
         "capabilities": ["video.generate", "video.async", "video.image_to_video"],
         "parameters": {"aspect_ratio": ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"], "bitrate_mode": ["standard", "high"], "duration": ["5", "10"], "mode": ["t2v", "i2v"], "resolution": ["480p", "720p", "1080p"]},
     },
@@ -645,19 +704,45 @@ def _env(prefix: str, suffix: str) -> str:
     return os.getenv(f"{prefix}_{suffix}", "").strip()
 
 
+def read_key(prefix: str) -> str:
+    """The credential for one model, straight from the environment.
+
+    Deliberately the only accessor: nothing caches it, so rotating a key in the
+    deployment takes effect on the next invocation without a restart or a write.
+    """
+    return _env(prefix, "API_KEY")
+
+
 def resolve(entry: Dict[str, Any]) -> Dict[str, Any]:
     """Read the configuration for one catalogue entry.
 
-    Never invents a value: a missing credential means `configured: false`, and
-    `missing` names the variable that would fix it."""
+    Three variables per model, all read from the environment:
+
+        <PREFIX>_API_KEY   the credential
+        <PREFIX>_MODEL     the model name to send (defaults to the documented id)
+        <PREFIX>_API_URL   the endpoint (defaults to the provider's documented one)
+
+    Never invents a value: a missing key means `configured: false`, and
+    `missing` names the variable that would fix it. An API URL set in the
+    environment always wins over the catalogue's, so a gateway or proxy needs no
+    code change.
+    """
     prefix = entry["env"]
     key = _env(prefix, "API_KEY")
     model_id = _env(prefix, "MODEL") or entry["job_set_type"]
     enabled = _env(prefix, "ENABLED").lower() not in ("0", "false", "no")
 
+    # A URL set on the model wins; otherwise the catalogue's documented endpoint.
+    # The second is recorded, never guessed from the model name.
+    api_url = _env(prefix, "API_URL") or entry.get("api_url", "")
+    api_url_source = "env" if _env(prefix, "API_URL") else (
+        "catalogue" if api_url else "")
+
     missing = []
     if not key and not _already_authorised():
         missing.append(f"{prefix}_API_KEY")
+    if not api_url:
+        missing.append(f"{prefix}_API_URL")
 
     return {
         "slug": entry["slug"],
@@ -670,11 +755,21 @@ def resolve(entry: Dict[str, Any]) -> Dict[str, Any]:
         "capabilities": entry["capabilities"],
         "parameters": entry["parameters"],
         "env_prefix": prefix,
+        "api_url": api_url,
+        "api_url_source": api_url_source,
         "configured": not missing and enabled,
         "enabled": enabled,
         "missing": missing,
         "has_key": bool(key),
     }
+
+
+def by_env(prefix: str) -> Optional[Dict[str, Any]]:
+    """A resolved catalogue entry by its environment prefix."""
+    for entry in all_models():
+        if entry["env_prefix"] == prefix:
+            return entry
+    return None
 
 
 def all_models() -> List[Dict[str, Any]]:

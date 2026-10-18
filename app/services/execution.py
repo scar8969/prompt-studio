@@ -14,8 +14,7 @@ import time
 import urllib.parse
 from typing import Any, Dict, List, Optional, Tuple
 
-from .. import crypto, store
-from ..adapters import get as get_adapter
+from .. import store
 from ..adapters.base import Connection
 from ..config import UPSTREAM_MAX_BYTES
 from ..errors import ApiError, classify_upstream
@@ -31,28 +30,16 @@ MIME_EXT = {
 }
 
 
-def _connection_for(job: Dict[str, Any]) -> Tuple[Dict[str, Any], Connection]:
-    from .connections import get_connection
+def _adapter_for(model: Dict[str, Any]):
+    """The adapter and connection for a model, with the key read from the environment.
 
-    row = get_connection(job["connection_id"]) if job.get("connection_id") else None
-    if not row:
-        raise ApiError("connection_failed",
-                       "The connection this job used has been deleted.", status=409)
-    secret = crypto.decrypt(row.get("secret_encrypted", ""))
-    if not secret and row["kind"] != "mock":
-        # A key that cannot be decrypted is treated as missing, which the provider
-        # reports as invalid_api_key — the honest outcome after a key rotation.
-        raise ApiError("invalid_api_key",
-                       "The stored key for this connection could not be read. "
-                       "Re-enter it on the connection.")
-    pinned = ""
-    if row["kind"] != "mock":
-        try:
-            pinned = resolve_pinned_ip(row["base_url"])
-        except ApiError:
-            pinned = ""
-    return row, Connection(base_url=row["base_url"], secret=secret,
-                           provider=row["kind"], pinned_ip=pinned)
+    There is no stored credential to decrypt any more: `adapter_and_connection` reads
+    `<PREFIX>_API_KEY` at call time, so a key rotated in Vercel is picked up by the next
+    invocation and a key removed there fails loudly instead of calling out with nothing.
+    """
+    from .connections import adapter_and_connection
+
+    return adapter_and_connection(model)
 
 
 def execute_job(job: Dict[str, Any]) -> None:
@@ -62,8 +49,7 @@ def execute_job(job: Dict[str, Any]) -> None:
     if not model:
         raise ApiError("invalid_model_id", "The model for this job no longer exists.")
 
-    conn_row, conn = _connection_for(job)
-    adapter = get_adapter(conn_row["kind"])
+    adapter, conn, _provider = _adapter_for(model)
     model_id = model["model_id"]
 
     try:

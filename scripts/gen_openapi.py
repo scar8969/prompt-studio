@@ -23,7 +23,9 @@ TARGET = REPO / "docs" / "openapi.yaml"
 #: needs are defined below. (Module-level use of them is a NameError.)
 
 TAG_BY_PREFIX = [
-    ("/api/connections", "Connections"),
+    ("/api/providers", "Models"),
+    ("/api/sync", "Models"),
+    ("/api/catalog", "Models"),
     ("/api/models", "Models"),
     ("/api/generations", "Generation"),
     ("/api/jobs", "Jobs"),
@@ -41,15 +43,8 @@ TAG_BY_PREFIX = [
 SUMMARIES = {
     ("GET", "/api/health"): "Service status and row counts",
     ("GET", "/api/capabilities"): "The capability vocabulary",
-    ("GET", "/api/connections"): "List connections (keys are masked)",
-    ("POST", "/api/connections"): "Create a connection (BYOK)",
-    ("GET", "/api/connections/{connection_id}"): "One connection, key masked",
-    ("PATCH", "/api/connections/{connection_id}"): "Rename, re-key or change the base URL",
-    ("DELETE", "/api/connections/{connection_id}"): "Delete a connection and its secret",
-    ("POST", "/api/connections/{connection_id}/test"): "Call the provider to prove the connection works",
-    ("POST", "/api/connections/{connection_id}/rotate-key"): "Replace the stored key",
-    ("GET", "/api/connections/{connection_id}/models"): "Models the provider lists (nothing stored)",
-    ("POST", "/api/connections/{connection_id}/models"): "Register models with their capabilities",
+    ("GET", "/api/providers"): "The provider endpoints the configured models use",
+    ("POST", "/api/sync"): "Re-read the environment and update the model registry",
     ("GET", "/api/models"): "The model registry, filtered by modality or capability",
     ("GET", "/api/models/{model_pk}"): "One registered model",
     ("GET", "/api/models/{model_pk}/capabilities"): "What this model can do",
@@ -209,7 +204,9 @@ def build() -> dict:
             "title": "Prompt Studio API",
             "version": "1.0.0",
             "description": (
-                "A model-agnostic AI creative platform with BYOK/BYOM connections.\n\n"
+                "A model-agnostic AI creative platform. Credentials are environment "
+                "variables, never stored per user: a model exists because "
+                "`<PREFIX>_API_KEY`, `<PREFIX>_MODEL` and `<PREFIX>_API_URL` are set.\\n\\n"
                 "Every JSON response is either `{\"data\": ...}` or "
                 "`{\"error\": {\"code\", \"message\", \"hint?\"}}`. The error codes are a "
                 "closed set (see `app/errors.py`), so a client can branch on them."),

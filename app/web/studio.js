@@ -149,7 +149,7 @@ function statusChip(status) {
 
 /* ------------------------------------------------------------------ routing */
 const VIEWS = ['image', 'video', 'jobs', 'projects', 'library', 'prompts',
-               'presets', 'characters', 'connections', 'usage'];
+               'presets', 'characters', 'models', 'usage'];
 
 const LOADERS = {
   image: loadStudioModels,
@@ -160,7 +160,7 @@ const LOADERS = {
   prompts: loadPrompts,
   presets: loadPresets,
   characters: loadCharacters,
-  connections: loadConnections,
+  models: loadModels,
   usage: loadUsage,
 };
 
@@ -879,213 +879,50 @@ async function deleteCharacter(character) {
   } catch (error) { toast(error.message, 'bad'); }
 }
 
-/* ================================================================== connections */
-async function loadConnections() {
-  const res = await api.get('/api/connections');
-  state.connections = res.data;
-  const list = $('connList');
-  if (!res.data.length) {
-    mount(list, [emptyState('No connections yet',
-      'Add one on the left. The offline demo needs no credentials.')]);
-    return;
-  }
-  mount(list, res.data.map((conn) => {
-    const kind = conn.status === 'ok' ? 'ok' : conn.status === 'error' ? 'bad' : 'warn';
-    return el('div', { class: 'row-item' }, [
-      el('div', { class: 'grow' }, [
-        el('div', { class: 'title', text: conn.name }),
-        el('div', { class: 'sub mono', text: conn.base_url }),
-        el('div', { class: 'sub' }, [
-          conn.model_count + ' model(s) · ' +
-          (conn.key_hint ? 'key ' + conn.key_hint : 'no key') +
-          ' · tested ' + fmtWhen(conn.last_tested_at) +
-          (conn.last_error ? ' · last error: ' + conn.last_error : ''),
-        ]),
-      ]),
-      chip(conn.status, kind),
-      el('div', { class: 'actions' }, [
-        el('button', { class: 'btn sm', text: 'Test', onclick: () => testConnection(conn) }),
-        el('button', { class: 'btn sm', text: 'Models', onclick: () => openModels(conn) }),
-        el('button', { class: 'btn sm', text: 'Rotate key', onclick: () => rotateKey(conn) }),
-        el('button', { class: 'btn sm danger', text: 'Delete', onclick: () => deleteConnection(conn) }),
-      ]),
-    ]);
-  }));
-  // A studio with no models should refresh as soon as one is registered.
-  if (!state.models.length) loadStudioModels().catch(() => {});
-}
-
-async function addConnection() {
-  const message = $('connMsg');
-  mount(message, []);
-  const kind = $('connKind').value;
-  const payload = {
-    name: $('connName').value.trim() || 'Untitled connection',
-    kind,
-    base_url: kind === 'mock' ? 'mock://offline' : $('connBase').value.trim(),
-  };
-  if (kind !== 'mock' && $('connKey').value) payload.api_key = $('connKey').value;
-
-  if (kind !== 'mock' && !payload.base_url) {
-    showError(message, { message: 'An API base URL is required.', code: 'missing_field' });
-    return;
-  }
-  if (kind !== 'mock' && !$('connKey').value) {
-    showError(message, { message: 'An API key is required for this connection.', code: 'missing_field' });
-    return;
-  }
-
-  $('connAdd').disabled = true;
+/* ================================================================== models */
+// Credentials are environment variables now, so this view reads and never writes.
+// It answers "which models do I have?" — a model appears here only because its key,
+// name and URL were set in the deployment's environment.
+async function loadModels() {
+  const list = $('modelList');
+  let models = [];
   try {
-    await api.post('/api/connections', payload);
-    $('connKey').value = '';
-    $('connName').value = '';
-    mount(message, [banner('Connection added. Test it to confirm it works.', 'ok')]);
-    await loadConnections();
-    await loadHealth();
+    const res = await api.get('/api/models?include_disabled=true');
+    models = res.data || [];
   } catch (error) {
-    showError(message, error);
-  } finally {
-    $('connAdd').disabled = false;
-  }
-}
-
-async function testConnection(conn) {
-  const message = $('connMsg');
-  mount(message, [banner('Testing ' + conn.name + '…', 'info')]);
-  try {
-    const res = await api.post('/api/connections/' + conn.id + '/test');
-    const data = res.data;
-    if (data.ok) {
-      mount(message, [banner('Works — ' + data.models_found + ' model(s) listed in ' +
-        data.latency_ms + ' ms' + (data.offline ? ' (offline demo)' : '') + '.', 'ok')]);
-    } else {
-      const error = data.error || {};
-      mount(message, [banner('Failed: ' + (error.message || 'unknown error') +
-        (error.hint ? ' — ' + error.hint : ''), 'bad')]);
-    }
-    await loadConnections();
-  } catch (error) {
-    showError(message, error);
-  }
-}
-
-async function rotateKey(conn) {
-  const values = await formDialog('Rotate the key for ' + conn.name, [
-    { name: 'api_key', label: 'New API key', password: true, required: true,
-      hint: 'Replacing the key marks the connection untested until you test it again.' },
-  ]);
-  if (!values) return;
-  try {
-    await api.post('/api/connections/' + conn.id + '/rotate-key', { api_key: values.api_key });
-    toast('Key replaced', 'ok');
-    await loadConnections();
-  } catch (error) { toast(error.message, 'bad'); }
-}
-
-async function deleteConnection(conn) {
-  if (!confirm('Delete "' + conn.name + '"? Its stored key is removed permanently.')) return;
-  try {
-    await api.del('/api/connections/' + conn.id);
-    toast('Connection deleted', 'ok');
-    await loadConnections();
-    await loadStudioModels().catch(() => {});
-  } catch (error) { toast(error.message, 'bad'); }
-}
-
-async function openModels(conn) {
-  state.activeConnection = conn;
-  $('modelBox').hidden = false;
-  $('modelConnName').textContent = conn.name;
-  mount($('providerModels'), []);
-  $('fetchMsg').textContent = '';
-  await loadRegisteredModels(conn.id);
-}
-
-async function fetchProviderModels() {
-  const conn = state.activeConnection;
-  if (!conn) return;
-  const target = $('providerModels');
-  $('fetchMsg').textContent = 'Asking the provider…';
-  mount(target, []);
-  try {
-    const res = await api.get('/api/connections/' + conn.id + '/models');
-    $('fetchMsg').textContent = res.data.length +
-      ' offered · nothing is stored until you register one';
-    if (!res.data.length) {
-      mount(target, [emptyState('The provider listed no models')]);
-      return;
-    }
-    mount(target, res.data.map((model) => el('div', { class: 'row-item' }, [
-      el('div', { class: 'grow' }, [
-        el('div', { class: 'title', text: model.display_name || model.model_id }),
-        el('div', { class: 'sub mono', text: model.model_id }),
-        el('div', { class: 'chips mt3' }, (model.capabilities || []).map((c) => chip(c))),
-      ]),
-      chip(model.modality, 'accent'),
-      el('div', { class: 'actions' }, [
-        el('button', { class: 'btn sm', text: 'Register',
-          onclick: () => registerModel(model.model_id) }),
-      ]),
-    ])));
-  } catch (error) {
-    $('fetchMsg').textContent = '';
-    showError(target, error);
-  }
-}
-
-async function registerModel(modelId) {
-  const conn = state.activeConnection;
-  if (!conn) return;
-  try {
-    await api.post('/api/connections/' + conn.id + '/models', { models: [modelId] });
-    toast('Registered ' + modelId, 'ok');
-    await loadRegisteredModels(conn.id);
-    await loadStudioModels();
-    await loadConnections();
-  } catch (error) { toast(error.message, 'bad'); }
-}
-
-async function loadRegisteredModels(connectionId) {
-  const target = $('registeredModels');
-  const res = await api.get('/api/models?include_disabled=true');
-  const mine = res.data.filter((m) => m.connection_id === connectionId);
-  if (!mine.length) {
-    mount(target, [emptyState('No models registered on this connection')]);
+    mount(list, [emptyState('Could not read the models', error.message)]);
     return;
   }
-  mount(target, mine.map((model) => el('div', { class: 'row-item' }, [
+
+  if (!models.length) {
+    mount(list, [emptyState('No models configured',
+      'Set MODEL_API_KEY, MODEL and MODEL_API_URL for the models you want in this ' +
+      "deployment's environment, then reload.")]);
+    return;
+  }
+
+  mount(list, models.map((model) => el('div', { class: 'row-item' }, [
     el('div', { class: 'grow' }, [
-      el('div', { class: 'title', text: model.display_name }),
-      el('div', { class: 'sub mono', text: model.model_id + ' · ' + model.modality }),
-      el('div', { class: 'chips mt3' }, (model.capabilities || []).map((c) => chip(c))),
+      el('div', { class: 'title', text: model.display_name || model.model_id }),
+      el('div', { class: 'sub mono', text: model.api_url || '(no endpoint)' }),
+      el('div', { class: 'sub' }, [
+        chip(model.modality),
+        ' ' + (model.capabilities || []).join(', '),
+        model.env_prefix ? ' · ' + model.env_prefix : '',
+      ]),
     ]),
-    chip(model.enabled ? 'enabled' : 'disabled', model.enabled ? 'ok' : 'warn'),
-    el('div', { class: 'actions' }, [
-      el('button', { class: 'btn sm', text: model.enabled ? 'Disable' : 'Enable',
-        onclick: () => toggleModel(model) }),
-      el('button', { class: 'btn sm danger', text: 'Remove',
-        onclick: () => removeModel(model) }),
-    ]),
+    el('span', { class: 'chip ' + (model.enabled ? 'ok' : 'bad'),
+                 text: model.enabled ? 'enabled' : 'disabled' }),
   ])));
 }
 
-async function toggleModel(model) {
+async function syncModels() {
   try {
-    await api.patch('/api/models/' + model.id, { enabled: !model.enabled });
-    await loadRegisteredModels(state.activeConnection.id);
-    await loadStudioModels();
-  } catch (error) { toast(error.message, 'bad'); }
-}
-
-async function removeModel(model) {
-  if (!confirm('Remove "' + model.display_name + '" from the registry?')) return;
-  try {
-    await api.del('/api/models/' + model.id);
-    toast('Model removed', 'ok');
-    await loadRegisteredModels(state.activeConnection.id);
-    await loadStudioModels();
-    await loadConnections();
+    const res = await api.post('/api/sync', {});
+    const r = res.data;
+    toast(r.configured + ' model(s) configured, ' + r.disabled + ' disabled', 'ok');
+    await loadModels();
+    await loadHealth();
   } catch (error) { toast(error.message, 'bad'); }
 }
 
@@ -1308,16 +1145,8 @@ $('dlgForm').addEventListener('keydown', (event) => {
   if (event.key === 'Escape') { event.preventDefault(); settleDialog(null); }
 });
 
-$('connAdd').addEventListener('click', addConnection);
-$('connRefresh').addEventListener('click', () => loadConnections().catch((e) => toast(e.message, 'bad')));
-$('connKind').addEventListener('change', () => {
-  const mock = $('connKind').value === 'mock';
-  $('connBaseField').hidden = mock;
-  $('connKeyField').hidden = mock;
-  $('connBase').required = !mock;
-  $('connKey').required = !mock;
-});
-$('fetchModels').addEventListener('click', fetchProviderModels);
+$('modelRefresh').addEventListener('click', () => loadModels().catch((e) => toast(e.message, 'bad')));
+$('modelSync').addEventListener('click', () => syncModels());
 
 for (const kind of ['image', 'video']) {
   const p = PREFIX[kind];
@@ -1385,7 +1214,7 @@ window.addEventListener('hashchange', () => {
   await loadHealth();
   const startView = location.hash.replace('#', '') || 'image';
   go(VIEWS.includes(startView) ? startView : 'image');
-  loadConnections().catch(() => {});
+  loadModels().catch(() => {});
   setInterval(loadHealth, 15000);
   setInterval(() => {
     if (state.view === 'jobs') loadJobs().catch(() => {});
