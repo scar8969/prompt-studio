@@ -248,7 +248,7 @@ class TestThroughTheEnvironment:
         from app.services import sync
 
         monkeypatch.setenv("GPT_IMAGE_2_5_API_KEY", "test-key")
-        monkeypatch.setenv("GPT_IMAGE_2_5_API_URL", fake_provider.base_url)
+        monkeypatch.setenv("API_BASE_URL", fake_provider.base_url)
         monkeypatch.setenv("GPT_IMAGE_2_5_MODEL", "gpt-image-2.5")
         monkeypatch.setenv("ALLOW_PRIVATE_UPSTREAM", "1")
         sync.sync_from_env()
@@ -273,7 +273,7 @@ class TestThroughTheEnvironment:
         from app.services import sync
 
         monkeypatch.setenv("NANO_BANANA_2_API_KEY", "bad-key")
-        monkeypatch.setenv("NANO_BANANA_2_API_URL", fake_provider.base_url)
+        monkeypatch.setenv("API_BASE_URL", fake_provider.base_url)
         # Nano Banana Pro has a recorded provider id, so _MODEL is optional here.
         monkeypatch.delenv("NANO_BANANA_2_MODEL", raising=False)
         monkeypatch.setenv("ALLOW_PRIVATE_UPSTREAM", "1")

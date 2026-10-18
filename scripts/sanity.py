@@ -122,11 +122,18 @@ def main() -> int:
     # A model exists only because the environment configured it. Nothing configured is a
     # legitimate state, not a failure: the deployment simply cannot generate yet.
     if not configured:
-        print("  NOTE  no models are configured here — set <PREFIX>_API_KEY, "
-              "<PREFIX>_MODEL and <PREFIX>_API_URL to enable one")
-    for model in configured:
-        check(f"{model['display_name']} has an endpoint", bool(model.get("api_url")),
-              "no api_url recorded")
+        print("  NOTE  no models configured — set API_BASE_URL once, then a "
+              "<PREFIX>_MODEL and <PREFIX>_API_KEY per model")
+    missing_url = [m["display_name"] for m in configured if not m.get("api_url")]
+    check("every configured model has an endpoint", not missing_url, str(missing_url))
+    # One shared endpoint is the expected shape: report how many distinct ones exist,
+    # because more than one usually means API_BASE_URL is unset and the catalogue
+    # defaults are being used instead.
+    endpoints = sorted({m.get("api_url") for m in configured if m.get("api_url")})
+    if len(endpoints) > 1:
+        print(f"  INFO  models resolve to {len(endpoints)} different endpoints:")
+        for url in endpoints:
+            print(f"          {url}")
         # The built-in demo provider is not a catalogue model, so it has no env prefix
         # by design; every real model must name the variables that configure it.
         if model.get("provider") != "Demo" and model["provider"] != "mock":

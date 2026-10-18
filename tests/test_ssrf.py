@@ -141,7 +141,7 @@ class TestThroughTheEnvironment:
         from app.services import connections as connection_service
 
         monkeypatch.setenv("GPT_IMAGE_2_5_API_KEY", "sk-test")
-        monkeypatch.setenv("GPT_IMAGE_2_5_API_URL", api_url)
+        monkeypatch.setenv("API_BASE_URL", api_url)
         # A third-party endpoint needs the provider's own model id: this catalogue has
         # no recorded id for GPT Image 2.5, so the default would be rejected as missing.
         monkeypatch.setenv("GPT_IMAGE_2_5_MODEL", "gpt-image-2.5")
@@ -161,7 +161,7 @@ class TestThroughTheEnvironment:
         from app.services import connections as connection_service
 
         monkeypatch.setenv("GPT_IMAGE_2_5_API_KEY", "sk-test")
-        monkeypatch.setenv("GPT_IMAGE_2_5_API_URL", "file:///etc/passwd")
+        monkeypatch.setenv("API_BASE_URL", "file:///etc/passwd")
         monkeypatch.setenv("GPT_IMAGE_2_5_MODEL", "gpt-image-2.5")
         from app.services import sync
 

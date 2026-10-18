@@ -60,6 +60,13 @@ def health(req: Request) -> Tuple[Dict[str, Any], int]:
                 problems.append(
                     "SUPABASE_REGION is not set. Storage requests are signed with a "
                     "region, so a wrong one is rejected as a bad key.")
+    from .. import catalog as _catalog
+
+    if not os.getenv("API_BASE_URL", "").strip() and not any(
+            m["api_url"] for m in _catalog.all_models() if m["configured"]):
+        problems.append(
+            "API_BASE_URL is not set: no model can be reached. Set it once to your "
+            "gateway's base URL (e.g. https://your-gateway/v1).")
     if IS_PRODUCTION and not os.getenv("CRON_SECRET", "").strip():
         problems.append("CRON_SECRET is not set: the job tick will refuse to run.")
     from ..config import ensure_dirs

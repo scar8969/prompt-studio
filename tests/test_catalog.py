@@ -150,9 +150,12 @@ class TestTheModelNameIsTheProviders:
         for name in ("GPT_IMAGE_2_5_MODEL", "GPT_IMAGE_2_5_API_KEY"):
             monkeypatch.delenv(name, raising=False)
         monkeypatch.setenv("GPT_IMAGE_2_5_API_KEY", "k")
+        monkeypatch.setenv("API_BASE_URL", "https://api.openai.com/v1")
         entry = catalog.get("gpt_image_2_5")
-        assert not entry["configured"]
-        assert "GPT_IMAGE_2_5_MODEL" in entry["missing"]
+        # With one shared endpoint the model name is the only thing left to supply, and
+        # it falls back to the recorded id rather than being reported missing.
+        assert entry["configured"]
+        assert entry["model_id"] == "gpt_image_2_5"
 
     def test_an_explicit_model_always_wins(self, monkeypatch):
         monkeypatch.setenv("NANO_BANANA_2_API_KEY", "k")
@@ -168,3 +171,65 @@ class TestTheModelNameIsTheProviders:
         entry = catalog.get("text2image_soul_v2")
         assert entry["model_id"] == "text2image_soul_v2"
         assert entry["configured"]
+
+
+class TestOneEndpointManyModels:
+    """The simple format: one `API_BASE_URL`, then a name and a key per model.
+
+    Every model goes through the same gateway, so the shared endpoint has to work for
+    many models at once — and two models must not collide in the registry just because
+    they point at the same URL.
+    """
+
+    def test_two_models_share_one_endpoint(self, monkeypatch):
+        from app.services import connections as connection_service
+        from app.services import sync
+
+        monkeypatch.setenv("API_BASE_URL", "https://gw.example.com/v1")
+        monkeypatch.setenv("NANO_BANANA_2_API_KEY", "k1")
+        monkeypatch.setenv("GPT_IMAGE_2_API_KEY", "k2")
+        monkeypatch.setenv("GPT_IMAGE_2_MODEL", "gpt-image-1")
+        sync.sync_from_env()
+
+        first = connection_service.public_model(
+            connection_service.get_model_by_env_prefix("NANO_BANANA_2"))
+        second = connection_service.public_model(
+            connection_service.get_model_by_env_prefix("GPT_IMAGE_2"))
+        assert first["api_url"] == "https://gw.example.com/v1"
+        assert second["api_url"] == "https://gw.example.com/v1"
+        # Same endpoint, two rows: the registry must not merge them.
+        assert first["id"] != second["id"]
+        assert first["model_id"] == "gemini-3-pro-image-preview"
+        assert second["model_id"] == "gpt-image-1"
+
+    def test_one_endpoint_produces_one_provider_row(self, monkeypatch):
+        """Five models on one gateway is five models and one provider."""
+        from app.services import connections as connection_service
+        from app.services import sync
+
+        monkeypatch.setenv("API_BASE_URL", "https://shared.example.com/v1")
+        for prefix in ("NANO_BANANA_2", "GPT_IMAGE_2"):
+            monkeypatch.setenv(f"{prefix}_API_KEY", "k")
+        monkeypatch.setenv("GPT_IMAGE_2_MODEL", "gpt-image-1")
+        sync.sync_from_env()
+
+        rows = [p for p in connection_service.list_providers()
+                if p["api_url"] == "https://shared.example.com/v1"]
+        assert len(rows) == 1, f"expected one provider row, got {len(rows)}"
+        assert rows[0]["model_count"] >= 2
+
+    def test_the_model_name_is_sent_verbatim(self, monkeypatch):
+        """Whatever you put in _MODEL is what the endpoint receives."""
+        monkeypatch.setenv("API_BASE_URL", "https://gw.example.com/v1")
+        monkeypatch.setenv("CINEMATIC_STUDIO_2_5_API_KEY", "k")
+        monkeypatch.setenv("CINEMATIC_STUDIO_2_5_MODEL", "my-endpoint-alias")
+        entry = catalog.get("cinematic_studio_2_5")
+        assert entry["model_id"] == "my-endpoint-alias"
+        assert entry["configured"]
+
+    def test_a_per_model_url_still_works_when_needed(self, monkeypatch):
+        """The global endpoint is the default; one model can still differ."""
+        monkeypatch.setenv("API_BASE_URL", "https://gw.example.com/v1")
+        monkeypatch.setenv("VEO3_API_KEY", "k")
+        monkeypatch.setenv("VEO3_API_URL", "https://other.example.com/v1")
+        assert catalog.get("veo3")["api_url"] == "https://other.example.com/v1"

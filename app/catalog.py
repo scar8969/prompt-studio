@@ -781,39 +781,44 @@ def read_key(prefix: str) -> str:
 def resolve(entry: Dict[str, Any]) -> Dict[str, Any]:
     """Read the configuration for one catalogue entry.
 
-    Three variables per model, all read from the environment:
+    **One endpoint, then a name and a key per model.** That is the whole format:
 
-        <PREFIX>_API_KEY   the credential
-        <PREFIX>_MODEL     the model name to send (defaults to the documented id)
-        <PREFIX>_API_URL   the endpoint (defaults to the provider's documented one)
+        API_BASE_URL=https://your-gateway.example.com/v1
+        <PREFIX>_MODEL=<the id your endpoint expects>
+        <PREFIX>_API_KEY=<your key>
 
-    Never invents a value: a missing key means `configured: false`, and
-    `missing` names the variable that would fix it. An API URL set in the
-    environment always wins over the catalogue's, so a gateway or proxy needs no
-    code change.
+    `API_BASE_URL` is the same value for every model. `<PREFIX>` is the
+    job-set id uppercased, so the app knows which catalogue row is configured.
+
+    Two fallbacks keep it short, and neither is a guess:
+
+    * `<PREFIX>_MODEL` blank -> the model id recorded for that catalogue row.
+      Fill it in when your endpoint uses a different name; the value is sent
+      verbatim as `{"model": ...}`.
+    * `<PREFIX>_API_URL` is still honoured, for the rare model that lives on a
+      different host. Leave it out otherwise.
+
+    A model with no key is `configured: false` and stays hidden from the studios.
     """
     prefix = entry["env"]
     key = _env(prefix, "API_KEY")
     explicit_model = _env(prefix, "MODEL")
-    provider_id = entry.get("provider_model_id", "")
-    # The job-set id is the Higgsfield CLI id. It is only a safe default when the
-    # endpoint is Higgsfield itself; Google, OpenAI and xAI do not know it.
-    model_id = explicit_model or provider_id or entry["job_set_type"]
+    model_id = explicit_model or entry.get("provider_model_id") or entry["job_set_type"]
     enabled = _env(prefix, "ENABLED").lower() not in ("0", "false", "no")
 
-    # A URL set on the model wins; otherwise the catalogue's documented endpoint.
-    # The second is recorded, never guessed from the model name.
-    api_url = _env(prefix, "API_URL") or entry.get("api_url", "")
-    api_url_source = "env" if _env(prefix, "API_URL") else (
-        "catalogue" if api_url else "")
+    # Precedence: per-model override, then the shared base URL, then the default.
+    # Most specific first: a model-level URL beats the shared one, which beats the
+    # catalogue default. Putting the global first would silently ignore an
+    # override someone had set deliberately.
+    api_url = (_env(prefix, "API_URL")
+               or os.getenv("API_BASE_URL", "").strip().rstrip("/")
+               or entry.get("api_url", ""))
 
     missing = []
     if not key and not _already_authorised():
         missing.append(f"{prefix}_API_KEY")
     if not api_url:
-        missing.append(f"{prefix}_API_URL")
-    elif not explicit_model and not provider_id and not _is_higgsfield(api_url):
-        missing.append(f"{prefix}_MODEL")
+        missing.append("API_BASE_URL")
 
     return {
         "slug": entry["slug"],
@@ -827,7 +832,6 @@ def resolve(entry: Dict[str, Any]) -> Dict[str, Any]:
         "parameters": entry["parameters"],
         "env_prefix": prefix,
         "api_url": api_url,
-        "api_url_source": api_url_source,
         "configured": not missing and enabled,
         "enabled": enabled,
         "missing": missing,
@@ -836,7 +840,11 @@ def resolve(entry: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def by_env(prefix: str) -> Optional[Dict[str, Any]]:
-    """A resolved catalogue entry by its environment prefix."""
+    """A resolved catalogue entry by its environment prefix.
+
+    The prefix is the stable key: <PREFIX>_MODEL may rename the model id, but the
+    prefix is what identifies which catalogue row is configured.
+    """
     for entry in all_models():
         if entry["env_prefix"] == prefix:
             return entry
