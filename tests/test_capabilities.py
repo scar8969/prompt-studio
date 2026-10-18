@@ -61,7 +61,9 @@ class TestRegistration:
 
         monkeypatch.setenv("GPT_IMAGE_2_5_API_KEY", "sk-test")
         monkeypatch.setenv("GPT_IMAGE_2_5_API_URL", "https://api.openai.com/v1")
-        monkeypatch.delenv("GPT_IMAGE_2_5_MODEL", raising=False)
+        # This model has no recorded provider id, so _MODEL is required — the
+        # Higgsfield job-set id would be rejected by OpenAI.
+        monkeypatch.setenv("GPT_IMAGE_2_5_MODEL", "gpt-image-2.5")
         sync.sync_from_env()
 
         model = connection_service.get_model_by_env_prefix("GPT_IMAGE_2_5")

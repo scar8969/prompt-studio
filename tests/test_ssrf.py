@@ -142,7 +142,9 @@ class TestThroughTheEnvironment:
 
         monkeypatch.setenv("GPT_IMAGE_2_5_API_KEY", "sk-test")
         monkeypatch.setenv("GPT_IMAGE_2_5_API_URL", api_url)
-        monkeypatch.delenv("GPT_IMAGE_2_5_MODEL", raising=False)
+        # A third-party endpoint needs the provider's own model id: this catalogue has
+        # no recorded id for GPT Image 2.5, so the default would be rejected as missing.
+        monkeypatch.setenv("GPT_IMAGE_2_5_MODEL", "gpt-image-2.5")
         monkeypatch.setenv("APP_ENV", "production")     # production never allows private
         monkeypatch.setenv("ALLOW_PRIVATE_UPSTREAM", "0")
 
@@ -160,7 +162,7 @@ class TestThroughTheEnvironment:
 
         monkeypatch.setenv("GPT_IMAGE_2_5_API_KEY", "sk-test")
         monkeypatch.setenv("GPT_IMAGE_2_5_API_URL", "file:///etc/passwd")
-        monkeypatch.delenv("GPT_IMAGE_2_5_MODEL", raising=False)
+        monkeypatch.setenv("GPT_IMAGE_2_5_MODEL", "gpt-image-2.5")
         from app.services import sync
 
         sync.sync_from_env()

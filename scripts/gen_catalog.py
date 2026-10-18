@@ -198,6 +198,28 @@ API_URLS = {
 }
 
 
+#: The provider's own model id, where it differs from Higgsfield's job-set id.
+#:
+#: This distinction matters: `nano_banana_2` is the id Higgsfield's CLI takes, and
+#: Google has never heard of it. When `<PREFIX>_API_URL` points at the provider
+#: directly, the model name sent in the request body must be the provider's id.
+#:
+#: Only ids with a recorded source are listed. A model whose provider id is not
+#: recorded here requires an explicit `<PREFIX>_MODEL` — `resolve()` reports it as
+#: missing rather than sending a name the provider will reject.
+PROVIDER_MODEL_IDS = {
+    # From the provider's documented model list, as recorded when this catalogue was
+    # built. Verify against `GET {API_URL}/models` if a request is refused.
+    "nano_banana_2": "gemini-3-pro-image-preview",
+    "nano_banana": "gemini-2.5-flash-image",
+    "gpt_image_2": "gpt-image-1",
+}
+
+
+def provider_model_id_for(model_id: str) -> str:
+    return PROVIDER_MODEL_IDS.get(model_id, "")
+
+
 def api_url_for(model_id: str) -> str:
     """The documented endpoint for a model, or empty when there is no public one."""
     for prefix, url in API_URLS.items():
@@ -271,6 +293,7 @@ def render(models: list[dict]) -> str:
             f'        "env": {json.dumps(env_prefix(model["id"]))},',
             f'        "modality": {json.dumps(model["category"])},',
             f'        "api_url": {json.dumps(api_url_for(model["id"]))},',
+            f'        "provider_model_id": {json.dumps(provider_model_id_for(model["id"]))},',
             f'        "capabilities": {json.dumps(caps)},',
             f'        "parameters": {json.dumps(params, sort_keys=True)},',
             "    },",
@@ -301,6 +324,12 @@ def render(models: list[dict]) -> str:
         '    return os.getenv(f"{prefix}_{suffix}", "").strip()',
         "",
         "",
+        "def _is_higgsfield(api_url: str) -> bool:",
+        '    """True when the endpoint speaks the Higgsfield job-set protocol."""',
+        '    return not api_url or api_url.startswith("cli://") or "higgsfield" in (',
+        '        api_url or "").lower()',
+        "",
+        "",
         "def read_key(prefix: str) -> str:",
         '    """The credential for one model, straight from the environment.',
         "",
@@ -326,7 +355,11 @@ def render(models: list[dict]) -> str:
         '    """',
         '    prefix = entry["env"]',
         '    key = _env(prefix, "API_KEY")',
-        '    model_id = _env(prefix, "MODEL") or entry["job_set_type"]',
+        '    explicit_model = _env(prefix, "MODEL")',
+        '    provider_id = entry.get("provider_model_id", "")',
+        '    # The job-set id is the Higgsfield CLI id. It is only a safe default when the',
+        '    # endpoint is Higgsfield itself; Google, OpenAI and xAI do not know it.',
+        '    model_id = explicit_model or provider_id or entry["job_set_type"]',
         '    enabled = _env(prefix, "ENABLED").lower() not in ("0", "false", "no")',
         "",
         "    # A URL set on the model wins; otherwise the catalogue's documented endpoint.",
@@ -340,6 +373,8 @@ def render(models: list[dict]) -> str:
         '        missing.append(f"{prefix}_API_KEY")',
         "    if not api_url:",
         '        missing.append(f"{prefix}_API_URL")',
+        "    elif not explicit_model and not provider_id and not _is_higgsfield(api_url):",
+        '        missing.append(f"{prefix}_MODEL")',
         "",
         "    return {",
         '        "slug": entry["slug"],',

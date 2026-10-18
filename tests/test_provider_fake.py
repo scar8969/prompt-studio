@@ -249,7 +249,7 @@ class TestThroughTheEnvironment:
 
         monkeypatch.setenv("GPT_IMAGE_2_5_API_KEY", "test-key")
         monkeypatch.setenv("GPT_IMAGE_2_5_API_URL", fake_provider.base_url)
-        monkeypatch.delenv("GPT_IMAGE_2_5_MODEL", raising=False)
+        monkeypatch.setenv("GPT_IMAGE_2_5_MODEL", "gpt-image-2.5")
         monkeypatch.setenv("ALLOW_PRIVATE_UPSTREAM", "1")
         sync.sync_from_env()
 
@@ -261,8 +261,10 @@ class TestThroughTheEnvironment:
         # A real round trip: the adapter asks the provider what it has.
         listed = adapter.list_models(conn)
         assert len(listed) >= 3
-        # And the provider row is a real endpoint, not a placeholder.
-        assert provider["base_url"] == fake_provider.base_url
+        # And the model's endpoint is the one configured, not a placeholder. Assert on
+        # the model rather than the provider row: earlier tests in the session leave
+        # provider rows behind, and the row is an internal detail.
+        assert connection_service.public_model(model)["api_url"] == fake_provider.base_url
 
     def test_a_bad_key_is_reported_as_an_auth_failure(self, client, fake_provider,
                                                       monkeypatch):
@@ -272,6 +274,7 @@ class TestThroughTheEnvironment:
 
         monkeypatch.setenv("NANO_BANANA_2_API_KEY", "bad-key")
         monkeypatch.setenv("NANO_BANANA_2_API_URL", fake_provider.base_url)
+        # Nano Banana Pro has a recorded provider id, so _MODEL is optional here.
         monkeypatch.delenv("NANO_BANANA_2_MODEL", raising=False)
         monkeypatch.setenv("ALLOW_PRIVATE_UPSTREAM", "1")
         # The adapter appends "/models" to the base URL, so with a base of .../v1 the

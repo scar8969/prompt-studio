@@ -122,5 +122,49 @@ def test_an_unconfigured_model_is_hidden_and_never_invented(monkeypatch):
     model = catalog.get("nano_banana_2")
     assert model["configured"] is False
     assert "NANO_BANANA_2_API_KEY" in model["missing"]
-    # The documented id is still reported, because it is real — it is simply unused.
-    assert model["model_id"] == "nano_banana_2"
+    # The model id defaults to the provider's own id, not Higgsfield's job-set id:
+    # Google would reject `nano_banana_2`, so the id that gets sent is Gemini's.
+    assert model["model_id"] == "gemini-3-pro-image-preview"
+
+
+class TestTheModelNameIsTheProviders:
+    """`_MODEL` must be the name the *endpoint* expects, not Higgsfield's id.
+
+    The trap this pins: the catalogue's `job_set_type` is what Higgsfield's CLI takes
+    (`nano_banana_2`), and Google has never heard of it. Shipping Google's URL as the
+    default while defaulting the model name to `nano_banana_2` produces a 404 from the
+    provider that reads like a broken key.
+    """
+
+    def test_a_known_model_defaults_to_the_provider_id(self, monkeypatch):
+        for name in ("NANO_BANANA_2_API_KEY", "NANO_BANANA_2_MODEL",
+                     "NANO_BANANA_2_API_URL"):
+            monkeypatch.delenv(name, raising=False)
+        monkeypatch.setenv("NANO_BANANA_2_API_KEY", "k")
+        entry = catalog.get("nano_banana_2")
+        assert entry["model_id"] == "gemini-3-pro-image-preview"
+        assert entry["model_id"] != "nano_banana_2"
+
+    def test_an_unknown_provider_id_is_reported_missing_not_guessed(self, monkeypatch):
+        """No recorded id means `_MODEL` is required, not silently wrong."""
+        for name in ("GPT_IMAGE_2_5_MODEL", "GPT_IMAGE_2_5_API_KEY"):
+            monkeypatch.delenv(name, raising=False)
+        monkeypatch.setenv("GPT_IMAGE_2_5_API_KEY", "k")
+        entry = catalog.get("gpt_image_2_5")
+        assert not entry["configured"]
+        assert "GPT_IMAGE_2_5_MODEL" in entry["missing"]
+
+    def test_an_explicit_model_always_wins(self, monkeypatch):
+        monkeypatch.setenv("NANO_BANANA_2_API_KEY", "k")
+        monkeypatch.setenv("NANO_BANANA_2_MODEL", "my-gateway-alias")
+        assert catalog.get("nano_banana_2")["model_id"] == "my-gateway-alias"
+
+    def test_a_higgsfield_endpoint_keeps_the_job_set_id(self, monkeypatch):
+        """When the endpoint *is* Higgsfield, the job-set id is the correct name."""
+        # The prefix is the job-set id uppercased: text2image_soul_v2 -> TEXT2IMAGE_SOUL_V2
+        monkeypatch.setenv("TEXT2IMAGE_SOUL_V2_API_KEY", "k")
+        monkeypatch.setenv("TEXT2IMAGE_SOUL_V2_API_URL", "cli://higgsfield")
+        monkeypatch.delenv("TEXT2IMAGE_SOUL_V2_MODEL", raising=False)
+        entry = catalog.get("text2image_soul_v2")
+        assert entry["model_id"] == "text2image_soul_v2"
+        assert entry["configured"]

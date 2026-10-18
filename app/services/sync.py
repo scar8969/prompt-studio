@@ -72,6 +72,18 @@ def _connection_for(api_url: str) -> Dict[str, Any]:
     if existing:
         return existing
 
+    # A model whose endpoint changed leaves its old provider row behind, and that row
+    # would keep a dead URL. Re-point a row that exists under this model's name rather
+    # than creating a second one: the base URL is the correct identity, but a stale
+    # duplicate makes the Providers view show a dead endpoint.
+    stale = store.row(
+        "SELECT * FROM connections WHERE owner_id=? AND name=?", (OWNER, _host_label(api_url)))
+    if stale:
+        store.execute(
+            "UPDATE connections SET base_url=?, kind=?, updated_at=? WHERE id=?",
+            (api_url, _provider_kind(api_url), store.utcnow(), stale["id"]))
+        return store.row("SELECT * FROM connections WHERE id=?", (stale["id"],))
+
     connection_id = store.new_id("prov_")
     now = store.utcnow()
     store.execute(
@@ -84,8 +96,16 @@ def _connection_for(api_url: str) -> Dict[str, Any]:
 
 
 def _host_label(api_url: str) -> str:
-    host = urlsplit(api_url).hostname or api_url
-    return host or "provider"
+    """A readable name that is unique per endpoint.
+
+    The port is part of it: `127.0.0.1:8000` and `127.0.0.1:8001` are different
+    providers, and collapsing them to one label made a second endpoint silently reuse
+    the first one's row.
+    """
+    parts = urlsplit(api_url)
+    if not parts.hostname:
+        return api_url or "provider"
+    return f"{parts.hostname}:{parts.port}" if parts.port else parts.hostname
 
 
 def sync_from_env() -> Dict[str, Any]:
@@ -137,17 +157,25 @@ def sync_from_env() -> Dict[str, Any]:
 def _upsert_model(connection: Dict[str, Any], entry: Dict[str, Any],
                   capabilities: List[str]) -> str:
     """Insert or update one model row. Returns its primary key."""
-    existing = store.row(
-        "SELECT * FROM models WHERE owner_id=? AND connection_id=? AND model_id=?",
-        (OWNER, connection["id"], entry["model_id"]))
+    # Find the model by the environment prefix that configures it, not by its current
+    # connection: when `<PREFIX>_API_URL` changes, the model must move to the new
+    # provider rather than staying attached to the old endpoint.
+    existing = None
+    for row in store.rows("SELECT * FROM models WHERE owner_id=?", (OWNER,)):
+        metadata = store.load_json(row["metadata_json"], {}) or {}
+        if metadata.get("env_prefix") == entry["env_prefix"]:
+            existing = row
+            break
     now = store.utcnow()
 
     if existing:
         store.execute(
-            "UPDATE models SET display_name=?, modality=?, enabled=1, updated_at=? "
-            "WHERE id=?",
-            (entry["display"], entry["modality"], now, existing["id"]))
+            "UPDATE models SET connection_id=?, model_id=?, display_name=?, modality=?, "
+            "enabled=1, updated_at=? WHERE id=?",
+            (connection["id"], entry["model_id"], entry["display"], entry["modality"],
+             now, existing["id"]))
         return existing["id"]
+
 
     model_pk = store.new_id("mdl_")
     store.execute(
